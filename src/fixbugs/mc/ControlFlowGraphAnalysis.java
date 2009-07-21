@@ -32,6 +32,7 @@ public class ControlFlowGraphAnalysis {
 			throws AnalyzerException {
 
 		Analyzer a = new Analyzer(new BasicInterpreter()) {
+
 			protected Frame newFrame(int nLocals, int nStack) {
 				return new ControlFlowGraphNode(nLocals, nStack);
 			}
@@ -46,12 +47,19 @@ public class ControlFlowGraphAnalysis {
 				s.successors.add(dest);
 				dest.predecessors.add(s);
 			}
+			
+			@Override
+			protected boolean newControlFlowExceptionEdge(int src, int dst) {
+				// TODO: decide how to explicitly represent this information
+				newControlFlowEdge(src, dst);
+				return super.newControlFlowExceptionEdge(src, dst);
+			}
 		};
 		a.analyze(owner, mn);
 		ControlFlowGraphNode[] frames = (ControlFlowGraphNode[]) a.getFrames();
 		for (ControlFlowGraphNode node : frames) {
 			if(node.predecessors.isEmpty()) {
-				 return node;
+				return node;
 			}
 		}
 		
