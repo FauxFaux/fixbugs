@@ -1,32 +1,30 @@
 package fixbugs.mc
 
-
 /**
- * Paths within Logic
+ * Path :=  F nc
+ *      |   G nc
+ *      |   X nc
+ *      |   nc U nc
  */
-sealed abstract class Path {}
-
-/**
- * CTL core
- */
+abstract class Path {}
+case class Future(cond:NodeCondition) extends Path
+case class Global(cond:NodeCondition) extends Path
 case class Next(cond:NodeCondition) extends Path
 case class Until(phi:NodeCondition,psi:NodeCondition) extends Path
 
 /**
- * CTL Sugar
+ * nc   :=  E Path
+ *      |   A Path
+ *      |   LineNUmber
+ *      |   nc ^ nc
+ *      |   nc \/ nc
+ *      |   ¬ nc
  */
-case class Future(cond:NodeCondition) extends Path
-case class Global(cond:NodeCondition) extends Path
-
 sealed abstract class NodeCondition {}
-
-/**
- * Temporal operators
- */
 case class All(path:Path) extends NodeCondition
 case class Exists(path:Path) extends NodeCondition
-
-/**
- * Predicates
- */
 case class LineNumber(number:Int) extends NodeCondition
+case class And(left:NodeCondition,right:NodeCondition) extends NodeCondition
+case class Or(left:NodeCondition,right:NodeCondition) extends NodeCondition
+case class Not(phi:NodeCondition) extends NodeCondition
+
