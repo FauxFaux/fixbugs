@@ -6,7 +6,7 @@ import scala.collection.mutable.HashMap
  */
 trait ClosedEnvironment[V] {
     def add(value:HashMap[String,V]):ClosedEnvironment[V]
-    def removeByKey(key:String,values:Set[V]):ClosedEnvironment[V]
+    def restrictByKey(key:String,value:V):ClosedEnvironment[V]
     def union(other:ClosedEnvironment[V]):ClosedEnvironment[V]
     def intersect(other:ClosedEnvironment[V]):ClosedEnvironment[V]
     def join(other:ClosedEnvironment[V],attributes:Set[String]):ClosedEnvironment[V]
@@ -33,7 +33,7 @@ class SetClosedDomain[V](all:Set[HashMap[String,V]]) extends ClosedDomain[V] {
 class SetClosedEnvionrment[V](initialValues:Set[HashMap[String,V]],factory:SetClosedDomain[V]) extends ClosedEnvironment[V] {
 
     def add(value) = newWith(values + value)
-    def removeByKey(key,what) = newWith(values.filter(what.contains(_)))
+    def restrictByKey(key,what) = newWith(values.filter(what == _))
     def union(other) = newWith(other.values ++ values)
     def intersect(other) = newWith(values ** other.values)
     /**
@@ -47,6 +47,7 @@ class SetClosedEnvionrment[V](initialValues:Set[HashMap[String,V]],factory:SetCl
                     temp = tempt + ov + v
             })
         })
+        hewWith(temp)
     }
 
     val domain = factory
