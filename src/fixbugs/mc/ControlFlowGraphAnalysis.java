@@ -8,6 +8,8 @@ package fixbugs.mc;
 import java.util.HashSet;
 import java.util.Set;
 
+import org.objectweb.asm.ClassReader;
+import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.MethodNode;
 import org.objectweb.asm.tree.analysis.Analyzer;
 import org.objectweb.asm.tree.analysis.AnalyzerException;
@@ -20,7 +22,29 @@ import org.objectweb.asm.tree.analysis.Frame;
  * @author Richard Warburton
  */
 public class ControlFlowGraphAnalysis {
-
+	
+	/**
+	 * Test main method
+	 * @param args
+	 * @throws Exception
+	 */
+	public static void main(String[] args) throws Exception {
+		final String className = "fixbugs.test.Simple";
+		final ClassNode cn = new ClassNode();
+		final ClassReader cr = new ClassReader(className);
+		cr.accept(cn, 0);
+		
+		MethodNode mn = (MethodNode) cn.methods.get(1);
+		final ControlFlowGraphNode[] root = getControlFlowGraph("foo", mn);
+		for (ControlFlowGraphNode frame: root) {
+			if(frame != null) {
+				System.out.println(frame);
+				System.out.println(frame.predecessors.size());
+				System.out.println(frame.successors.size());
+			}
+		}
+	}
+	
 	/**
 	 * Returns root node of the CFG of a given method
 	 * @param owner
@@ -28,7 +52,7 @@ public class ControlFlowGraphAnalysis {
 	 * @return
 	 * @throws AnalyzerException
 	 */
-	public ControlFlowGraphNode getControlFlowGraph(String owner, MethodNode mn)
+	public static ControlFlowGraphNode[] getControlFlowGraph(String owner, MethodNode mn)
 			throws AnalyzerException {
 
 		Analyzer a = new Analyzer(new BasicInterpreter()) {
@@ -56,14 +80,12 @@ public class ControlFlowGraphAnalysis {
 			}
 		};
 		a.analyze(owner, mn);
-		ControlFlowGraphNode[] frames = (ControlFlowGraphNode[]) a.getFrames();
-		for (ControlFlowGraphNode node : frames) {
-			if(node.predecessors.isEmpty()) {
-				return node;
-			}
+		Frame[] frames = a.getFrames();
+		ControlFlowGraphNode[] nodes = new ControlFlowGraphNode[frames.length];
+		for (int i = 0; i < frames.length; i++) {
+			nodes[i] = (ControlFlowGraphNode) frames[i];
 		}
-		
-		throw new AnalyzerException("No root node");
+		return nodes;
 	}
 }
 

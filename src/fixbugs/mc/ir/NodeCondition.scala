@@ -1,16 +1,4 @@
-package fixbugs.mc
-
-/**
- * Path :=  F nc
- *      |   G nc
- *      |   X nc
- *      |   nc U nc
- */
-abstract class Path {}
-case class Future(cond:NodeCondition) extends Path
-case class Global(cond:NodeCondition) extends Path
-case class Next(phi:NodeCondition) extends Path
-case class Until(phi:NodeCondition,psi:NodeCondition) extends Path
+package fixbugs.mc.ir
 
 /**
  * nc   :=  E Path
@@ -32,4 +20,3 @@ case class Not(phi:NodeCondition) extends NodeCondition
 case class NodePred(node:String) extends NodeCondition
 case class True() extends NodeCondition
 case class False() extends NodeCondition
-
