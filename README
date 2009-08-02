@@ -1,0 +1,6 @@
+
+Dependancies:
+
+Scala
+ScalaCheck ( http://code.google.com/p/scalacheck/)
+ASM

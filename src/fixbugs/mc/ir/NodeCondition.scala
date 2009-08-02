@@ -1,5 +1,9 @@
 package fixbugs.mc.ir
 
+import org.scalacheck._
+import Gen._
+import Arbitrary.arbitrary
+
 /**
  * nc   :=  E Path
  *      |   A Path
@@ -20,3 +24,38 @@ case class Not(phi:NodeCondition) extends NodeCondition
 case class NodePred(node:String) extends NodeCondition
 case class True() extends NodeCondition
 case class False() extends NodeCondition
+
+object NodeCondition {
+  //  IR Generator crap
+  // TODO: refactor common code
+  
+  val genLeaf = oneOf(value(True),value(False),for(e <- Arbitrary.arbitrary[String]) yield NodePred(e))
+
+  def genUnary(sz:Int) = for { phi <- genTree(sz-1) } yield Not(phi)
+  
+  def genAnd(sz:Int) = for {
+    phi <- genTree(sz/2)
+    psi <- genTree(sz/2)
+  } yield And(phi,psi)
+  
+  def genOr(sz:Int) = for {
+    phi <- genTree(sz/2)
+    psi <- genTree(sz/2)
+  } yield And(phi,psi)
+  
+  def genPath(sz:Int) = oneOf(genFuture(sz),genGlobal(sz))
+  
+  def genFuture(sz:Int) = for { phi <- genTree(sz-1) } yield Future(phi)
+  def genGlobal(sz:Int) = for { phi <- genTree(sz-1) } yield Global(phi)
+  
+  def genAll(sz:Int) = for { p <- genPath(sz-1) } yield All(p)
+  def genExists(sz:Int) = for { p <- genPath(sz-1) } yield Exists(p)
+  
+  def genTree(sz:Int): Gen[NodeCondition] =
+	  if(sz <= 0) genLeaf
+	  else if (sz <= 1) oneOf(genUnary(sz),genLeaf)
+	  else if(sz <= 2) oneOf(genAnd(sz),genOr(sz),genUnary(sz),genLeaf)
+	  else oneOf(genExists(sz),genAll(sz))
+  
+  implicit val arbFoo: Arbitrary[NodeCondition] = Arbitrary { Gen.sized(sz => genTree(sz)) }
+}
