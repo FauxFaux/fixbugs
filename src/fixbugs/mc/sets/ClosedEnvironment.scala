@@ -9,11 +9,12 @@ trait ClosedEnvironment[V] {
     def restrictByKey(key:String,value:V):ClosedEnvironment[V]
     def union(other:ClosedEnvironment[V]):ClosedEnvironment[V]
     def intersect(other:ClosedEnvironment[V]):ClosedEnvironment[V]
+    def difference(other:ClosedEnvironment[V]):ClosedEnvironment[V]
     def join(other:ClosedEnvironment[V],attributes:Set[String]):ClosedEnvironment[V]
     def equalByKey(keepKey:String,otherKey:String):ClosedEnvironment[V]
     def mapKey[T](key:String,f:Map[V,Set[V]]):ClosedEnvironment[V]
 
-    def negate():ClosedEnvironment[V] = domain.all().intersect(this)
+    def negate():ClosedEnvironment[V] = domain.all().difference(this)
     val domain:ClosedDomain[V]
 }
 

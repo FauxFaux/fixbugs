@@ -8,6 +8,7 @@ class SetClosedEnvironment[V](initialValues:Set[Map[String,V]],factory:SetClosed
     def restrictByKey(key:String,what:V) = newWith(values.filter(what == _))
     def union(other:ClosedEnvironment[V]) = newWith(other.asInstanceOf[SetClosedEnvironment[V]].values ++ values)
     def intersect(other:ClosedEnvironment[V]) = newWith(values ** other.asInstanceOf[SetClosedEnvironment[V]].values)
+    def difference(other:ClosedEnvironment[V]) = newWith(values -- other.asInstanceOf[SetClosedEnvironment[V]].values)
     def equalByKey(keepKey:String,otherKey:String) =
       newWith(values.filter((v) => v(keepKey) == v(otherKey)).map((v) => (v - otherKey).asInstanceOf[HashMap[String,V]]))
     def mapKey[T](key:String,f:Map[V,Set[V]]) =
@@ -33,5 +34,15 @@ class SetClosedEnvironment[V](initialValues:Set[Map[String,V]],factory:SetClosed
     val values = initialValues
 
     def newWith(vals:Set[Map[String,V]]) = new SetClosedEnvironment(vals,domain)
+    
+    override def equals(o:Any) = {
+      if (o.isInstanceOf[SetClosedEnvironment[V]]) {
+        o.asInstanceOf[SetClosedEnvironment[V]].values.equals(values)
+      } else {
+        false
+      }
+    }
+    
+    override def hashCode = values.hashCode
 
 }
