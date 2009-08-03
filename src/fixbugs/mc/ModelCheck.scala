@@ -32,7 +32,8 @@ object ModelCheck {
 	    val (succs,preds) = cfg(ControlFlowGraphAnalysis.getControlFlowGraph("fixbugs",mn))
 	    
 	    // model check the method, and add the results
-	    val eval:Evaluator = new Eval(domain,succs,preds)
+	    // TODO: node set
+	    val eval:Evaluator = new Eval(null,domain,succs,preds)
 	    results += (mn.name -> eval.eval(psi))
     })
     results

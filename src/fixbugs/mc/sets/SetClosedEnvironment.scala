@@ -9,10 +9,15 @@ class SetClosedEnvironment[V](initialValues:Set[Map[String,V]],factory:SetClosed
     def union(other:ClosedEnvironment[V]) = newWith(other.asInstanceOf[SetClosedEnvironment[V]].values ++ values)
     def intersect(other:ClosedEnvironment[V]) = newWith(values ** other.asInstanceOf[SetClosedEnvironment[V]].values)
     def difference(other:ClosedEnvironment[V]) = newWith(values -- other.asInstanceOf[SetClosedEnvironment[V]].values)
-    def equalByKey(keepKey:String,otherKey:String) =
-      newWith(values.filter((v) => v(keepKey) == v(otherKey)).map((v) => (v - otherKey).asInstanceOf[HashMap[String,V]]))
+    def equalByKey(keepKey:String,otherKey:String) = newWith(values.filter((v) => v(keepKey) == v(otherKey)))
     def mapKey[T](key:String,f:Map[V,Set[V]]) =
       newWith(values.flatMap((v) => f(v(key)).map((value) => v.update(key,value))))
+    def copyKey(fromKey:String,toKey:String):ClosedEnvironment[V] =
+      newWith(values.map(x => x + (toKey -> x(fromKey))))
+    
+    def restrictKeyTo(key:String,within:Set[V]) = newWith(values.filter(x => within contains x(key)))
+    
+    def copy:ClosedEnvironment[V] = newWith(values.map(x => Map() ++ x))
     
     /**
      * NB: Inefficient
@@ -29,6 +34,8 @@ class SetClosedEnvironment[V](initialValues:Set[Map[String,V]],factory:SetClosed
         })
         newWith(temp)
     }
+    
+    def allValues() = values
 
     val domain = factory
     val values = initialValues
@@ -42,6 +49,7 @@ class SetClosedEnvironment[V](initialValues:Set[Map[String,V]],factory:SetClosed
         false
       }
     }
+    
     
     override def hashCode = values.hashCode
 

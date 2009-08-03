@@ -12,9 +12,13 @@ trait ClosedEnvironment[V] {
     def difference(other:ClosedEnvironment[V]):ClosedEnvironment[V]
     def join(other:ClosedEnvironment[V],attributes:Set[String]):ClosedEnvironment[V]
     def equalByKey(keepKey:String,otherKey:String):ClosedEnvironment[V]
+    def copyKey(fromKey:String,toKey:String):ClosedEnvironment[V]
+    def restrictKeyTo(key:String,values:Set[V]):ClosedEnvironment[V]
     def mapKey[T](key:String,f:Map[V,Set[V]]):ClosedEnvironment[V]
-
+    def copy:ClosedEnvironment[V]
+    
     def negate():ClosedEnvironment[V] = domain.all().difference(this)
+    def allValues():Set[Map[String,V]]
     val domain:ClosedDomain[V]
 }
 

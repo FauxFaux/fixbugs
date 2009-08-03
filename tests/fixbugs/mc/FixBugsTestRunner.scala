@@ -2,6 +2,6 @@ package fixbugs.mc
 
 object FixBugsTestRunner {
   def main(args : Array[String]) : Unit = {
-    (new EvalSpec).execute()
+    List(new RefinerSpec,new EvalSpec).foreach(x => x.execute())
   }
 }
