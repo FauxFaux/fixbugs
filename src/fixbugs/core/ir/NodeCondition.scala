@@ -1,8 +1,8 @@
-package fixbugs.mc.ir
+package fixbugs.core.ir
 
 import org.scalacheck._
+import Arbitrary._
 import Gen._
-import Arbitrary.arbitrary
 
 /**
  * nc   :=  E Path

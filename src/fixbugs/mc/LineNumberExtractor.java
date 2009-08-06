@@ -7,6 +7,7 @@ import java.util.Map;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.tree.AbstractInsnNode;
 import org.objectweb.asm.tree.ClassNode;
+import org.objectweb.asm.tree.InsnList;
 import org.objectweb.asm.tree.LineNumberNode;
 import org.objectweb.asm.tree.LocalVariableNode;
 import org.objectweb.asm.tree.MethodNode;
@@ -43,6 +44,29 @@ public class LineNumberExtractor {
 			}
 		}
 		return lineNumbers;
+	}
+	
+	/**
+	 * Calculates a lookup for the source code line numbers of each of the given indices 
+	 * @param method
+	 * @return
+	 */
+	@SuppressWarnings("unchecked")
+	public static int[] getLineNumberLookup(MethodNode method) {
+		int currentLineNumber = -1;
+		final InsnList insns = method.instructions;
+		int[] lookup = new int[insns.size()];
+		final ListIterator it = method.instructions.iterator();
+		for(int i = 0;it.hasNext();i++) {
+			final AbstractInsnNode n = (AbstractInsnNode) it.next();
+			if (n instanceof LineNumberNode) {
+				final LineNumberNode lnn = (LineNumberNode) n;
+				currentLineNumber = lnn.line;
+			} else {
+				lookup[i] = currentLineNumber;
+			}
+		}
+		return lookup;
 	}
 	
 	public static String varName(final MethodNode method, final VarInsnNode varNode) {

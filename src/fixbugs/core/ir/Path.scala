@@ -1,4 +1,4 @@
-package fixbugs.mc.ir
+package fixbugs.core.ir
 
 //import fixbugs.mc.ir.NodeCondition
 
