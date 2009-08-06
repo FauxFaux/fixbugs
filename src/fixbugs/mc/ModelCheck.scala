@@ -1,6 +1,6 @@
 package fixbugs.mc
 
-import fixbugs.mc.ir.NodeCondition
+import fixbugs.core.ir.NodeCondition
 import fixbugs.mc.sets._
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.tree.ClassNode;

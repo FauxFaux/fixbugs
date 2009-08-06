@@ -1,6 +1,6 @@
 package fixbugs.mc
 
-import fixbugs.mc.ir._
+import fixbugs.core.ir._
 
 /**
  * Refines and simplifies Intermediate Representation

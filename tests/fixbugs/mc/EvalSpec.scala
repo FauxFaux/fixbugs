@@ -6,7 +6,7 @@ import matchers._
 
 import fixbugs.mc._
 import sets._
-import ir._
+import fixbugs.core.ir._
 import fixbugs.mc.Refiner.refine
 import fixbugs.util.MapUtil._
 import scala.collection.mutable.{HashMap => MMap}

@@ -20,4 +20,3 @@ case class &&() extends Operator
 case class |() extends Operator
 case class ||() extends Operator
 case class !() extends Operator
-

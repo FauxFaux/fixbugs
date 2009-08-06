@@ -1,6 +1,6 @@
 package fixbugs.mc;
 
-import fixbugs.mc.ir._;
+import fixbugs.core.ir._;
 import fixbugs.mc.sets._;
 import scala.collection.mutable.{Map => MMap}
 

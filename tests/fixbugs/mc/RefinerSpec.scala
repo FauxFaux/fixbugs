@@ -8,7 +8,7 @@ import matchers._
 import org.scalacheck.Prop.forAll
 import prop.Checkers
 
-import fixbugs.mc.ir._
+import fixbugs.core.ir._
 import fixbugs.mc.Refiner.refine
 
 class RefinerSpec extends Spec with Checkers with ShouldMatchers {
