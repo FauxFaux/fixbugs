@@ -14,6 +14,7 @@ case class While(cond:Expression,body:SBlock) extends Statement
 // TODO: more loops
 case class TryCatchFinally(tryBlock:SBlock,catchBlock:SBlock,finallyBlock:SBlock) extends Statement
 case class SideEffectExpr(expr:Expression) extends Statement
+case class SBlock(stmts:List[Statement]) extends Statement
 
 /**
  * Abbreviations for common patterns

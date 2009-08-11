@@ -1,25 +1,34 @@
 package fixbugs.core.ir
-import scala.util.parsing.combinator._
+import scala.util.parsing.combinator.RegexParsers
 import scala.util.matching.Regex
-
-import StatementParser._
 
 /**
  * Parses Fixbugs transformations
  */
 object Parser extends RegexParsers {
 
-  
   // Common
   override def skipWhitespace = true
   def r(s:String) = regex(new Regex(s))
   def literal = r("[a-z0-9][a-zA-Z0-9-]*")
   def variable = r("[A-Z][a-zA-Z0-9-]*")
   
+  def o(op:Parser[String],cons:Operator):Parser[Operator] = op ^^ {v => cons}
+  
+  def operator = o("+",new+)|o("-",new-)|o("*",new*)|o("/",new/)|
+    o("%",new%)|o("&",new&)|o("&&",new&&)|o("|",new|)|o("||",new||)|o("!",new!)
+  
   // Statement parsing
-
-  // TODO: expressions
-  def expression = literal ^^ { Literal(_) }
+  def lit = literal ~ opt("("~> (expression*) <~ ")") ^^ (x => x match {
+    case l~None => Metavar(l)
+    case l~Some(e) => Method(l,e)
+  })
+  
+  def un = operator ~ expression ^^ {case o~e => UnOp(e,o)} | lit
+  def expression:Parser[Expression] = (un ~ opt(operator ~ expression)) ^^ (x => x match { 
+  	case u~None => u
+  	case u~Some(op~ex) => BinOp(u,ex,op)
+  })
   
   def lb:Parser[Label] = (variable <~ ":") ~ statement ^^ { case l~s => Label(l,s) }
   def wc = r("....") ^^ { l => Wildcard() }
@@ -36,7 +45,6 @@ object Parser extends RegexParsers {
   def sblock = statements ^^ { SBlock(_) }
   
   // Side Condition Matching
-  
   def future = "F" ~> node ^^ (Future(_))
   def global = "G" ~> node ^^ (Global(_))
   def next = "X" ~> node ^^ (Next(_))
@@ -65,7 +73,6 @@ object Parser extends RegexParsers {
   def side:Parser[SideCondition] =  sat | sand | sor | snot
   
   // Transformations
-  
   def replace = ("REPLACE"~> sblock)~ ("WITH" ~> sblock) ~ ("WHERE" ~> side) ^^ {
     case from~to~cond => Replace(from,to,cond)
   }
