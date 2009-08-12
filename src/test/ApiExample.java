@@ -2,15 +2,8 @@ package test;
 
 import java.util.List;
 
-import org.eclipse.jdt.core.dom.AST;
-import org.eclipse.jdt.core.dom.ASTParser;
-import org.eclipse.jdt.core.dom.CompilationUnit;
-import org.eclipse.jdt.core.dom.ImportDeclaration;
-import org.eclipse.jdt.core.dom.TypeDeclaration;
-import org.eclipse.jdt.core.dom.rewrite.ASTRewrite;
-import org.eclipse.jdt.core.dom.rewrite.ITrackedNodePosition;
-import org.eclipse.jdt.core.dom.rewrite.ListRewrite;
-import org.eclipse.jface.text.BadLocationException;
+import org.eclipse.jdt.core.dom.*;
+import org.eclipse.jdt.core.dom.InfixExpression.Operator;
 import org.eclipse.jface.text.Document;
 import org.eclipse.text.edits.MalformedTreeException;
 import org.eclipse.text.edits.TextEdit;
@@ -24,14 +17,27 @@ public class ApiExample {
 	 * @param args
 	 */
 	public static void main(String... args) {
+		
+		System.out.println(Operator.AND);
+		System.out.println(Operator.toOperator("fooo"));
+		
 		Document document = new Document("import java.util.List;\nclass X {}\n");
 		ASTParser parser = ASTParser.newParser(AST.JLS3);
 		parser.setSource(document.get().toCharArray());
 		CompilationUnit cu = (CompilationUnit) parser.createAST(null);
 		final List types = cu.types();
+		System.out.println(types.size());
 		final TypeDeclaration X = (TypeDeclaration) types.get(0);
 		
 		System.out.println(X.getClass());
+		
+		final AST ast = cu.getAST();
+		LabeledStatement s = ast.newLabeledStatement();
+		//final InfixExpression infix = ast.newInfixExpression();
+		//infix.setOperator(Operator.AND.)
+	
+		
+		
 		/*AST ast = cu.getAST();
 		ImportDeclaration id = ast.newImportDeclaration();
 		id.setName(ast.newName(new String[] { "java", "util", "Set" }));

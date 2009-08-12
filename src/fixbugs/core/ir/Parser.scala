@@ -2,6 +2,9 @@ package fixbugs.core.ir
 import scala.util.parsing.combinator.RegexParsers
 import scala.util.matching.Regex
 
+import org.eclipse.jdt.core.dom.InfixExpression.{Operator => Op}
+import org.eclipse.jdt.core.dom.PostfixExpression.{Operator => PostOp}
+
 /**
  * Parses Fixbugs transformations
  */
@@ -13,10 +16,40 @@ object Parser extends RegexParsers {
   def literal = r("[a-z0-9][a-zA-Z0-9-]*")
   def variable = r("[A-Z][a-zA-Z0-9-]*")
   
-  def o(op:Parser[String],cons:Operator):Parser[Operator] = op ^^ {v => cons}
+  val operators = List(
+    Op.AND,
+    Op.CONDITIONAL_AND,
+    Op.CONDITIONAL_OR,
+    Op.DIVIDE,
+    Op.EQUALS,
+    Op.GREATER,
+    Op.GREATER_EQUALS,
+    Op.LEFT_SHIFT,
+    Op.LESS,
+    Op.LESS_EQUALS,
+    Op.MINUS,
+    Op.NOT_EQUALS,
+    Op.OR,
+    Op.PLUS,
+    Op.REMAINDER,
+    Op.RIGHT_SHIFT_SIGNED,
+    Op.RIGHT_SHIFT_UNSIGNED,
+    Op.TIMES,
+    Op.XOR,
+    Op.OR)
   
-  def operator = o("+",new+)|o("-",new-)|o("*",new*)|o("/",new/)|
-    o("%",new%)|o("&",new&)|o("&&",new&&)|o("|",new|)|o("||",new||)|o("!",new!)
+  val postfix = List(PostOp.DECREMENT, PostOp.INCREMENT)
+
+  // No code reuse because of lack of common supertype
+  def infixOperator:Parser[Op] = {
+    def parseOp(op:Op):Parser[Op] = literal(op.toString) ^^ Op.toOperator
+    operators.tail.map(parseOp).foldLeft(parseOp(operators.head))(_|_)
+  }
+	 
+  def postfixOperator:Parser[PostOp] = {
+    def parseOp(op:PostOp):Parser[PostOp] = literal(op.toString) ^^ PostOp.toOperator
+    postfix.tail.map(parseOp).foldLeft(parseOp(postfix.head))(_|_)
+  }
   
   // Statement parsing
   def lit = literal ~ opt("("~> (expression*) <~ ")") ^^ (x => x match {
@@ -24,8 +57,8 @@ object Parser extends RegexParsers {
     case l~Some(e) => Method(l,e)
   })
   
-  def un = operator ~ expression ^^ {case o~e => UnOp(e,o)} | lit
-  def expression:Parser[Expression] = (un ~ opt(operator ~ expression)) ^^ (x => x match { 
+  def un = expression ~ postfixOperator ^^ {case e~o => UnOp(e,o)} | lit
+  def expression:Parser[Expression] = (un ~ opt(infixOperator ~ expression)) ^^ (x => x match { 
   	case u~None => u
   	case u~Some(op~ex) => BinOp(u,ex,op)
   })

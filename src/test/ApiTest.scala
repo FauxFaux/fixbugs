@@ -15,7 +15,6 @@ import org.eclipse.text.edits.TextEdit
 import org.eclipse.text.edits.UndoEdit
 import org.eclipse.jdt.core.dom.ASTVisitor;
 
-
 object ApiTest {
   
   def before = """

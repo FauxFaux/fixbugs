@@ -6,6 +6,7 @@ import scala.collection.jcl.MutableIterator.Wrapper
 import org.eclipse.jdt.core.dom._
 import org.eclipse.jdt.core.dom.{Statement => IRStmt, Expression => IRExpr, Assignment => IRAssign}
 import fixbugs.core.ir.{Statement => Stmt,Expression => Expr,Assignment => Assign}
+import fixbugs.util.EclipseUtil.parse
 
 /**
  * Pattern matchs a Fixbugs pattern against the eclipse AST
@@ -33,31 +34,39 @@ class ASTPatternMatcher {
       c(false)
   }
   implicit def javaIteratorToScalaIteratorA[X](it:java.util.Iterator[X]) = new Wrapper[X](it)
+  implicit def compress[X](ar:Array[X]):Iterator[X] = ar.elements
   
-  def unifyAll(cu:CompilationUnit,pattern:Stmt) = {
-    cu.types.iterator.foreach(
-      _.asInstanceOf[TypeDeclaration].getMethods.foreach({m =>
-        m.getBody.statements.iterator.foreach(
-          s => println(unifyStmt(s.asInstanceOf[IRStmt],pattern))
-        )
+  def unifyAll(src:String,pattern:Stmt):Iterator[Context] = unifyAll(parse(src),pattern)
+  
+  /**
+   * Accumulate all contexts for a compilation unit
+   * TODO: initializers, constructors, fields
+   */
+  def unifyAll(cu:CompilationUnit,pattern:Stmt):Iterator[Context] = {
+    cu.types.iterator.flatMap(
+      _.asInstanceOf[TypeDeclaration].getMethods.flatMap({m =>
+        m.getBody.statements.iterator.map(
+          s => unifyStmt(s.asInstanceOf[IRStmt],pattern)
+        ).toList.filter(_.status)
       })
     )
   }
   
   /**
+   * Big TODO: convert to blocks, and product with recursive calls, anonymous inner classes
    * DONE:
 	   ExpressionStatement
 	   VariableDeclarationStatement
        IfStatement
        WhileStatement
        TryStatement
+       LabeledStatement
+       ReturnStatement
+       ThrowStatement
+       ForStatement
+       EnhancedForStatement
    * TODO:
     Block
-    
-    ReturnStatement
-    ThrowStatement
-    ForStatement
-    EnhancedForStatement
    
     DoStatement
     SwitchStatement
@@ -71,14 +80,15 @@ class ASTPatternMatcher {
     SuperConstructorInvocation
    * Ignore:
     EmptyStatement
-    LabeledStatement
    */
-  def unifyStmt(node:IRStmt,pattern:Stmt):Context =  {
+  def unifyStmt(node:IRStmt,pattern:Stmt):Context = {
+    //println(node.getClass)
     (node,pattern) match {
       
       case (stmt,Label(lbl,statement)) => unifyStmt(stmt,statement) & one(lbl,stmt)
       case (stmt,Wildcard()) => c(true)
       
+      case (stmt:ExpressionStatement,SideEffectExpr(expr)) => unifyExpr(stmt.getExpression,expr)
       case (stmt:VariableDeclarationStatement,Assign(name,to)) => {
         // TODO: multiple declarations
         val frag = stmt.fragments.get(0).asInstanceOf[VariableDeclarationFragment]
@@ -93,11 +103,21 @@ class ASTPatternMatcher {
         val cath = stmt.catchClauses.get(0).asInstanceOf[CatchClause]
         unifyStmt(stmt.getBody,tryB) & unifyStmt(cath.getBody,catchB) & unifyStmt(stmt.getFinally,finallyB)
       }
-      
-      // Error cases
-      case (_:Block,_) => throw new Exception("currently not dealing with blocks")
-      case (_,_:SBlock) => throw new Exception("currently not dealing with blocks")
-      case (_:CompilationUnit,_) => throw new Exception("Compilation Units shouldn't be here")
+      case (stmt:LabeledStatement,pat) => unifyStmt(stmt.getBody,pat)
+      case (stmt:ReturnStatement,Return(expr)) => unifyExpr(stmt.getExpression,expr)
+      case (stmt:ThrowStatement,Throw(expr)) => unifyExpr(stmt.getExpression,expr)
+      case (stmt:ForStatement,For(init,cond,up,body)) =>
+        unifyExprs(stmt.initializers,init) & unifyExpr(stmt.getExpression,cond) &
+        unifyExprs(stmt.updaters,up) & unifyStmt(stmt.getBody,body)
+      case (stmt:EnhancedForStatement,ForEach(typee,id,expr,body)) => {
+        val param = stmt.getParameter
+        guard(checkType(param.getType,typee),() =>
+          one(id,param.getName) &
+          unifyExpr(stmt.getExpression,expr) &
+          unifyStmt(stmt.getBody,body)
+        )
+      } 
+        
       case _ => c(false)
     }
   }
@@ -123,13 +143,13 @@ class ASTPatternMatcher {
     InfixExpression
     PostfixExpression
     PrefixExpression
-   * TODO:
-    ClassInstanceCreation
-    ArrayCreation
-    ArrayInitializer
-    VariableDeclarationExpression
     CastExpression
+    ClassInstanceCreation
     InstanceofExpression
+    ArrayInitializer
+   * TODO:
+    ArrayCreation
+    VariableDeclarationExpression
     ConditionalExpression
     Assignment
     SuperMethodInvocation
@@ -139,11 +159,9 @@ class ASTPatternMatcher {
   def unifyExpr(node:IRExpr,pattern:Expr):Context = {
     (node,pattern) match {
       case (expr,Metavar(name)) => one(name,expr)
-      case (expr:MethodInvocation,Method(name,args)) => {
-        // TODO: expression before method call matching
-        val margs = expr.arguments.asInstanceOf[java.util.List[IRExpr]].iterator.zip(args.elements)
-        one(name,expr.getName) & margs.map({case (e,p) => unifyExpr(e,p)}).foldLeft(c(true))(_&_)
-      }
+      // TODO: expression before method call matching
+      case (expr:MethodInvocation,Method(name,args)) =>
+        unifyExprs(expr.arguments,args) & one(name,expr.getName)
       case (expr:InfixExpression,BinOp(left,right,op)) =>
         guard(op == expr.getOperator,()=>unifyExpr(expr.getLeftOperand,left) & unifyExpr(expr.getRightOperand,right))
       case (expr:PostfixExpression,UnOp(inner,op)) =>
@@ -151,9 +169,36 @@ class ASTPatternMatcher {
       case (expr:PrefixExpression,UnOp(inner,op)) =>
         guard(op == expr.getOperator,()=>unifyExpr(expr.getOperand,inner))
       case (expr:ParenthesizedExpression,pattern) => unifyExpr(expr.getExpression,pattern)
+      case (expr:CastExpression,Cast(inner,typee)) =>
+        guard(checkType(expr.getType,typee),()=>unifyExpr(expr.getExpression,inner))
+      case (expr:ClassInstanceCreation,New(typee,args)) =>
+        guard(checkType(expr.getType,typee),()=>unifyExprs(expr.arguments,args))
+      case (expr:InstanceofExpression,InstanceOf(typee,inner)) =>
+        guard(checkType(expr.getRightOperand,typee),()=>unifyExpr(expr.getLeftOperand,inner))
+      case (expr:ArrayInitializer,ArrayInit(exprs)) => unifyExprs(expr.expressions,exprs)
+        
       case _ => c(false)
     }
   }
+  
+  def unifyExprs(arguments:java.util.List[_],args:List[Expression]) = {
+    val margs = arguments.asInstanceOf[java.util.List[IRExpr]].iterator.zip(args.elements)
+    margs.map({case (e,p) => unifyExpr(e,p)}).foldLeft(c(true))(_&_)
+  }
+  
+  /**
+   * TODO: Parameterized Types, Wildcard Types, Qualified Type
+   * @see http://help.eclipse.org/galileo/index.jsp?topic=/org.eclipse.jdt.doc.isv/reference/api/org/eclipse/jdt/core/dom/CastExpression.html
+   */
+  def checkType(node:Type,pattern:TypePattern):Boolean = {
+    (node,pattern) match {
+      case (t:PrimitiveType,PrimType(name)) => name == t.getPrimitiveTypeCode.toString
+      case (t:SimpleType,SimpType(name)) => name == t.getName
+      case (t:ArrayType,ArraType(typee)) => checkType(t.getComponentType,typee) 
+      case _ => false
+    }
+  }
+  
 }
 
 /**
@@ -194,6 +239,10 @@ class Context(st:Boolean,vals:MMap[String,ASTNode]) extends Cloneable[Context] {
       new Context(false,values)
     else
       new Context(true,values + (metavar -> node))
+  }
+  
+  override def toString = {
+    "C(status = {%s}, values = {%s})".format(status,values) 
   }
   
 }
