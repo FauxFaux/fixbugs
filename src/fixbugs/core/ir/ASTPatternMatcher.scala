@@ -1,14 +1,11 @@
-package test
+package fixbugs.core.ir
 
-import org.eclipse.jdt.core.dom._
-import org.eclipse.jdt.core.dom.{Statement => IRStmt,Expression => IRExpr}
 import scala.collection.mutable.HashMap
-import scala.collection.mutable.{Map=>MMap}
-import scala.collection.mutable.Stack
+import scala.collection.mutable.{Map => MMap}
 import scala.collection.jcl.MutableIterator.Wrapper
-import fixbugs.core.ir._
+import org.eclipse.jdt.core.dom._
+import org.eclipse.jdt.core.dom.{Statement => IRStmt, Expression => IRExpr, Assignment => IRAssign}
 import fixbugs.core.ir.{Statement => Stmt,Expression => Expr,Assignment => Assign}
-
 
 /**
  * Pattern matchs a Fixbugs pattern against the eclipse AST
