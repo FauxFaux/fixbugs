@@ -11,7 +11,6 @@ case class Wildcard() extends Statement
 case class Assignment(what:String,to:Expression) extends Statement
 case class IfElse(cond:Expression,trueBlock:Statement,falseBlock:Statement) extends Statement
 case class While(cond:Expression,body:Statement) extends Statement
-// TODO: more loops
 case class TryCatchFinally(tryBlock:SBlock,catchBlock:SBlock,finallyBlock:SBlock) extends Statement
 case class SideEffectExpr(expr:Expression) extends Statement
 case class SBlock(stmts:List[Statement]) extends Statement
@@ -19,6 +18,11 @@ case class Return(expr:Expression) extends Statement
 case class Throw(expr:Expression) extends Statement
 case class For(init:List[Expression],cond:Expression,updaters:List[Expression],body:Statement) extends Statement
 case class ForEach(typee:TypePattern,id:String,expr:Expression,body:Statement)  extends Statement
+case class Do(body:Statement,cond:Expression) extends Statement
+case class Synchronized(body:Statement,lock:Expression) extends Statement
+case class Switch(stmts:List[Statement],cond:Expression) extends Statement
+case class DefaultCase() extends Statement
+case class SSwitchCase(expr:Expression) extends Statement
 
 /**
  * Abbreviations for common patterns

@@ -52,9 +52,19 @@ class ASTPatternMatcher {
       })
     )
   }
+	
+	def block(stmts:List[IRStmt],pattern:List[Statement]) = {
+	  (stmts,pattern) match {
+	    case (s::ss,Wildcard()::p::ps) =>
+	      unifyStmt(s,p) && ()=> block(ss,ps) || block(ss,WildCard()::p::ps)
+	    case (s::ss,p::ps) => unifyStmt(s,p) && ()=>block(ss,ps)
+	    case (Nil,Wildcard()) => c(true)
+	    case (Nil,_) => c(false)
+	  }
+	}
   
   /**
-   * Big TODO: convert to blocks, and product with recursive calls, anonymous inner classes
+   * Big TODO: product with recursive calls, anonymous inner classes
    * DONE:
        ExpressionStatement
        VariableDeclarationStatement
@@ -67,11 +77,10 @@ class ASTPatternMatcher {
        ForStatement
        EnhancedForStatement
        Block
+       DoStatement
+       SynchronizedStatement
+       SwitchStatement
    * TODO:
-    DoStatement
-    SwitchStatement
-    SynchronizedStatement
-    
     BreakStatement
     ContinueStatement
     AssertStatement
@@ -93,15 +102,6 @@ class ASTPatternMatcher {
       // TODO: ignore non-matching prefix/suffix
       case (stmt:Block,SBlock(stmts)) => {
 	// recurse over list, destroying
-	def block(stmts:List[IRStmt],pattern:List[Statement]) = {
-	  (stmts,pattern) match {
-	    case (s::ss,Wildcard()::p::ps) =>
-	      unifyStmt(s,p) && ()=> block(ss,ps) || block(ss,WildCard()::p::ps)
-	    case (s::ss,p::ps) => unifyStmt(s,p) && ()=>block(ss,ps)
-	    case (Nil,Wildcard()) => c(true)
-	    case (Nil,_) => c(false)
-	  }
-	}
 	block(stmt.getStatements.iterator,stmts)
       }
 
@@ -120,6 +120,8 @@ class ASTPatternMatcher {
       case (stmt:IfStatement,IfElse(cond,tb,fb)) =>
         unifyExpr(stmt.getExpression,cond) & unifyStmt(stmt.getThenStatement(),tb) & unifyStmt(stmt.getElseStatement(),fb)
       case (stmt:WhileStatement,While(cond,body)) =>
+        unifyExpr(stmt.getExpression,cond) & unifyStmt(stmt.getBody,body)
+      case (stmt:DoStatement,Do(cond,body)) =>
         unifyExpr(stmt.getExpression,cond) & unifyStmt(stmt.getBody,body)
       case (stmt:TryStatement,TryCatchFinally(tryB,catchB,finallyB)) => {
         // TODO: multiple catch clauses
@@ -140,6 +142,12 @@ class ASTPatternMatcher {
           unifyStmt(stmt.getBody,body)
         )
       }
+      case (stmt:SynchronizedStatement, Synchronized(body,lock)) =>
+	unifyExpr(stmt.getExpression,lock) && () => unifyStmt(stmt.getBody,body)
+      case (stmt:SwitchStatement, Switch(stmts,cond) =>
+	unifyExpr(stmt.getExpression,cond) && () => block(stmt.statements.iterator,stmts)
+      case (stmt:SwitchCase,DefaultCase()) => c(stmt.isDefault)
+      case (stmt:SwitchCase,SSwitchCase(expr)) => unifyExpr(stmt.getExpression,expr)
       
       case _ => c(false)
     }
@@ -235,6 +243,7 @@ class Context(st:Boolean,vals:MMap[String,ASTNode]) extends Cloneable[Context] {
   
   /**
    * NB: lazily creates other context
+   * TODO: figure out if this makes complete sense - should it be product?
    */
   def ||(other:(()=>Context)):Context = {
     if(status)

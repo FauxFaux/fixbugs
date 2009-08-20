@@ -2,14 +2,15 @@ package test;
 
 import java.util.List;
 
-import org.eclipse.jdt.core.dom.*;
+import org.eclipse.jdt.core.dom.AST;
+import org.eclipse.jdt.core.dom.ASTParser;
+import org.eclipse.jdt.core.dom.CompilationUnit;
+import org.eclipse.jdt.core.dom.LabeledStatement;
+import org.eclipse.jdt.core.dom.SwitchStatement;
+import org.eclipse.jdt.core.dom.SynchronizedStatement;
+import org.eclipse.jdt.core.dom.TypeDeclaration;
 import org.eclipse.jdt.core.dom.InfixExpression.Operator;
 import org.eclipse.jface.text.Document;
-import org.eclipse.text.edits.MalformedTreeException;
-import org.eclipse.text.edits.TextEdit;
-import org.eclipse.text.edits.UndoEdit;
-
-import static java.lang.System.out;
 
 public class ApiExample {
 
@@ -37,6 +38,8 @@ public class ApiExample {
 		//infix.setOperator(Operator.AND.)
 	
 		
+		SwitchStatement switsh = ast.newSwitchStatement();
+		//switsh.statements()
 		
 		/*AST ast = cu.getAST();
 		ImportDeclaration id = ast.newImportDeclaration();
