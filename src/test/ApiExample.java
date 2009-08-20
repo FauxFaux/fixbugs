@@ -37,9 +37,7 @@ public class ApiExample {
 		//final InfixExpression infix = ast.newInfixExpression();
 		//infix.setOperator(Operator.AND.)
 	
-		
-		SwitchStatement switsh = ast.newSwitchStatement();
-		//switsh.statements()
+		ast.newConstructorInvocation()
 		
 		/*AST ast = cu.getAST();
 		ImportDeclaration id = ast.newImportDeclaration();

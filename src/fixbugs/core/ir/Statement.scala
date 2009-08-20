@@ -23,6 +23,11 @@ case class Synchronized(body:Statement,lock:Expression) extends Statement
 case class Switch(stmts:List[Statement],cond:Expression) extends Statement
 case class DefaultCase() extends Statement
 case class SSwitchCase(expr:Expression) extends Statement
+case class Break(String metavar) extends Statement
+case class Continue(String metavar) extends Statement
+case class Assert(expr:Expression) extends Statement
+case class Constructor(exprs:List[Expression]) extends Statement
+case class SuperConstructor(exprs:List[Expression]) extends Statement
 
 /**
  * Abbreviations for common patterns

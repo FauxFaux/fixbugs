@@ -80,13 +80,13 @@ class ASTPatternMatcher {
        DoStatement
        SynchronizedStatement
        SwitchStatement
+       BreakStatement
+       ContinueStatement
+       AssertStatement
+       ConstructorInvocation
+       SuperConstructorInvocation
    * TODO:
-    BreakStatement
-    ContinueStatement
-    AssertStatement
     TypeDeclarationStatement
-    ConstructorInvocation
-    SuperConstructorInvocation
    * Ignore:
     EmptyStatement
    */
@@ -148,7 +148,13 @@ class ASTPatternMatcher {
 	unifyExpr(stmt.getExpression,cond) && () => block(stmt.statements.iterator,stmts)
       case (stmt:SwitchCase,DefaultCase()) => c(stmt.isDefault)
       case (stmt:SwitchCase,SSwitchCase(expr)) => unifyExpr(stmt.getExpression,expr)
-      
+      case (stmt:BreakStatement,Break(mv)) => one(mv,stmt.getLabel)
+      case (stmt:ContinueStatement,Continue(mv)) => one(mv,stmt.getLabel)
+      case (stmt:AssertStatement,Assert(expr)) => unifyExpr(stmt.getExpression,expr)
+      case (stmt:ConstructorInvocation,Constructor(exprs)) =>
+	unifyExprs(stmt.getExpressions.iterator,exprs)
+      case (stmt:SuperConstructorInvocation,SuperConstructor(exprs)) =>
+	unifyExprs(stmt.getExpressions.iterator,exprs)
       case _ => c(false)
     }
   }
