@@ -33,7 +33,8 @@ class ASTPatternMatcher {
     else
       c(false)
   }
-  implicit def javaIteratorToScalaIteratorA[X](it:java.util.Iterator[X]) = new Wrapper[X](it)
+  implicit def javaItToScalaIt[X](it:java.util.Iterator[X]) = new Wrapper[X](it)
+  implicit def javaItToScalaList[X](it:java.util.Iterator[X]):List[X] = List() ++ new Wrapper[X](it)
   implicit def compress[X](ar:Array[X]):Iterator[X] = ar.elements
   
   def unifyAll(src:String,pattern:Stmt):Iterator[Context] = unifyAll(parse(src),pattern)
@@ -55,8 +56,8 @@ class ASTPatternMatcher {
   /**
    * Big TODO: convert to blocks, and product with recursive calls, anonymous inner classes
    * DONE:
-	   ExpressionStatement
-	   VariableDeclarationStatement
+       ExpressionStatement
+       VariableDeclarationStatement
        IfStatement
        WhileStatement
        TryStatement
@@ -65,9 +66,8 @@ class ASTPatternMatcher {
        ThrowStatement
        ForStatement
        EnhancedForStatement
+       Block
    * TODO:
-    Block
-   
     DoStatement
     SwitchStatement
     SynchronizedStatement
@@ -84,9 +84,32 @@ class ASTPatternMatcher {
   def unifyStmt(node:IRStmt,pattern:Stmt):Context = {
     //println(node.getClass)
     (node,pattern) match {
-      
+     
       case (stmt,Label(lbl,statement)) => unifyStmt(stmt,statement) & one(lbl,stmt)
       case (stmt,Wildcard()) => c(true)
+      
+      // fuzzy matching
+      // wildcard matches many statements
+      // TODO: ignore non-matching prefix/suffix
+      case (stmt:Block,SBlock(stmts)) => {
+	// recurse over list, destroying
+	def block(stmts:List[IRStmt],pattern:List[Statement]) = {
+	  (stmts,pattern) match {
+	    case (s::ss,Wildcard()::p::ps) =>
+	      unifyStmt(s,p) && ()=> block(ss,ps) || block(ss,WildCard()::p::ps)
+	    case (s::ss,p::ps) => unifyStmt(s,p) && ()=>block(ss,ps)
+	    case (Nil,Wildcard()) => c(true)
+	    case (Nil,_) => c(false)
+	  }
+	}
+	block(stmt.getStatements.iterator,stmts)
+      }
+
+      // block matching for single statement blocks
+      case (stmt:Block,pat) => {
+	stmts = stmt.getStatements
+	guard (stmts.size == 1, () => unifyStmt(stmt.get(0),pat))
+      }
       
       case (stmt:ExpressionStatement,SideEffectExpr(expr)) => unifyExpr(stmt.getExpression,expr)
       case (stmt:VariableDeclarationStatement,Assign(name,to)) => {
@@ -116,8 +139,8 @@ class ASTPatternMatcher {
           unifyExpr(stmt.getExpression,expr) &
           unifyStmt(stmt.getBody,body)
         )
-      } 
-        
+      }
+      
       case _ => c(false)
     }
   }
@@ -231,6 +254,8 @@ class Context(st:Boolean,vals:MMap[String,ASTNode]) extends Cloneable[Context] {
     }
     new Context(status,values ++ other.values)
   }
+
+  def &&(other:()=>Context):Context = &(other())
   
   def add(arg:(String,ASTNode)):Context = {
     val (metavar,node) = arg
