@@ -36,16 +36,7 @@ public class ApiExample {
 		LabeledStatement s = ast.newLabeledStatement();
 		//final InfixExpression infix = ast.newInfixExpression();
 		//infix.setOperator(Operator.AND.)
-	
-		switch (key) {
-		case value:
 			
-			break;
-
-		default:
-			break;
-		}
-		
 		/*AST ast = cu.getAST();
 		ImportDeclaration id = ast.newImportDeclaration();
 		id.setName(ast.newName(new String[] { "java", "util", "Set" }));
