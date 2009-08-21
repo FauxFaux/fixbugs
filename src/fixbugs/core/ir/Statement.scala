@@ -22,7 +22,7 @@ case class Do(body:Statement,cond:Expression) extends Statement
 case class Synchronized(body:Statement,lock:Expression) extends Statement
 case class Switch(stmts:List[Statement],cond:Expression) extends Statement
 case class DefaultCase() extends Statement
-case class SSwitchCase(expr:Expression) extends Statement
+case class Switchcase(expr:Expression) extends Statement
 case class Break(String metavar) extends Statement
 case class Continue(String metavar) extends Statement
 case class Assert(expr:Expression) extends Statement
@@ -38,3 +38,4 @@ object Statement {
   def TryCatch(tryBlock:SBlock,catchBlock:SBlock) = TryCatchFinally(tryBlock,catchBlock,WildBlock)
   def WildLabel(lbl:String) = Label(lbl,Wildcard())
 }
+

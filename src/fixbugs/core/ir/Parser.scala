@@ -41,11 +41,12 @@ object Parser extends RegexParsers {
   val postfix = List(PostOp.DECREMENT, PostOp.INCREMENT)
 
   // No code reuse because of lack of common supertype
+  // TODO: try structural type refinements
   def infixOperator:Parser[Op] = {
     def parseOp(op:Op):Parser[Op] = literal(op.toString) ^^ Op.toOperator
     operators.tail.map(parseOp).foldLeft(parseOp(operators.head))(_|_)
   }
-	 
+  
   def postfixOperator:Parser[PostOp] = {
     def parseOp(op:PostOp):Parser[PostOp] = literal(op.toString) ^^ PostOp.toOperator
     postfix.tail.map(parseOp).foldLeft(parseOp(postfix.head))(_|_)
@@ -70,8 +71,29 @@ object Parser extends RegexParsers {
   def loop = ("while"~>"("~>expression<~")")~block ^^ { case c~b => While(c,b) }
   def tcf = ("try"~>block)~("catch"~>block)~("finally"~>block) ^^ {case t~c~f => TryCatchFinally(t,c,f) }
   def see = expression <~ ";" ^^ { SideEffectExpr(_) }
-  
-  def statement =  lb | wc | ass | ifelse | loop | see 
+  def block = "{" ~> statements <~ "}" ^^ { SBlock(_)}
+  def return = "return" ~> expression <~ ";" ^^ {Return(_)}
+  def throww = "throw" ~> expression <~ ":" ^^ {Throw(_)}
+  // for
+  // foreach
+  def do = ("do" ~> statement) ~ ("while" ~> "(" ~> expression <~ ")" <~ ";") ^^ {
+    case s~e => Do(s,e)
+  }
+  def sync = ("synchronized" ~> "(" ~> expression <~ ")") ~ block ^^ {
+    case e~b => Synchronized(b,e)
+  }
+  def switch = ("switch" ~> "(" ~> expression <~ ")") ~ ("{" ~> statements <~ "}") ^^ {
+    case e~s => Switch(s,e)
+  }
+  def default = "default" ~ ";" ^^ { _ => DefaultCase() }
+  def switchcase = "case" ~> expression <~ ":" ^^ { Switchcase(_) }
+  def break = "break" ~> literal <~ ";" ^^ { Break(_) }
+  def continue = "continue" ~> literal <~ ";" ^^ { Continue(_) }
+  def assert = "assert" ~> expression <~ ";" ^^ { Assert(_) }
+  // TODO: exprs
+  def cons = "this" ~> "(" ~> expression <~ ")" ^^ {Constructor(List(_))}
+
+  def statement =  lb | wc | ass | ifelse | loop | see | do | sync | switch | default | switchcase | break | continue | assert | cons
   
   def statements:Parser[List[Product with Statement]] = statement*
   def block = "{"~>statements<~"}"  ^^ { SBlock(_) }
