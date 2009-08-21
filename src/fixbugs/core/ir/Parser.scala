@@ -63,7 +63,10 @@ object Parser extends RegexParsers {
   	case u~None => u
   	case u~Some(op~ex) => BinOp(u,ex,op)
   })
-  
+ 
+  // TODO: check the scala docs for pro way to do this
+  def exprs = expression
+ 
   def lb:Parser[Label] = (variable <~ ":") ~ statement ^^ { case l~s => Label(l,s) }
   def wc = r("....") ^^ { l => Wildcard() }
   def ass = variable ~ expression ^^ { case v~e => Assignment(v,e) }
@@ -74,8 +77,11 @@ object Parser extends RegexParsers {
   def block = "{" ~> statements <~ "}" ^^ { SBlock(_)}
   def return = "return" ~> expression <~ ";" ^^ {Return(_)}
   def throww = "throw" ~> expression <~ ":" ^^ {Throw(_)}
-  // for
-  // foreach
+  def fors = "for" ~> "(" ~> (forLoop | foreach)
+  def forLoop = expression ~ (";" ~> expression) ~ (";" ~> expression) ~ statement ^^ {
+    case init~cond~updaters~stmt => For(List(init),cond,List(updaters),stmt)
+  }
+  def foreach = "TODO"
   def do = ("do" ~> statement) ~ ("while" ~> "(" ~> expression <~ ")" <~ ";") ^^ {
     case s~e => Do(s,e)
   }
@@ -90,10 +96,10 @@ object Parser extends RegexParsers {
   def break = "break" ~> literal <~ ";" ^^ { Break(_) }
   def continue = "continue" ~> literal <~ ";" ^^ { Continue(_) }
   def assert = "assert" ~> expression <~ ";" ^^ { Assert(_) }
-  // TODO: exprs
-  def cons = "this" ~> "(" ~> expression <~ ")" ^^ {Constructor(List(_))}
+  def cons = "this" ~> "(" ~> exprs <~ ")" ^^ {Constructor(List(_))}
+  def scons = "super" ~> "(" ~> exprs <~ ")" ^^ {Constructor(List(_))}
 
-  def statement =  lb | wc | ass | ifelse | loop | see | do | sync | switch | default | switchcase | break | continue | assert | cons
+  def statement =  lb | wc | ass | ifelse | loop | see | do | sync | switch | default | switchcase | break | continue | assert | cons | scons | fors
   
   def statements:Parser[List[Product with Statement]] = statement*
   def block = "{"~>statements<~"}"  ^^ { SBlock(_) }
@@ -136,3 +142,4 @@ object Parser extends RegexParsers {
   def trans:Parser[Transformation] = replace | then
   
 }
+
