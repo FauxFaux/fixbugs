@@ -34,7 +34,7 @@ class ASTPatternMatcher {
       c(false)
   }
   implicit def javaItToScalaIt[X](it:java.util.Iterator[X]) = new Wrapper[X](it)
-  implicit def javaItToScalaList[X](it:java.util.Iterator[X]):List[X] = List() ++ new Wrapper[X](it)
+  //implicit def javaItToScalaList[X](it:java.util.Iterator[X]):List[X] = List() ++ it
   implicit def compress[X](ar:Array[X]):Iterator[X] = ar.elements
   
   def unifyAll(src:String,pattern:Stmt):Iterator[Context] = unifyAll(parse(src),pattern)
@@ -52,13 +52,22 @@ class ASTPatternMatcher {
       })
     )
   }
-	
-	def block(stmts:List[IRStmt],pattern:List[Statement]) = {
+  
+    // Sigh collection conversions
+    def blockIt(stmts:java.util.List[_],pattern:List[Statement]):Context = {
+      val it = stmts.iterator
+      var l = List[IRStmt]()
+      while(it.hasNext)
+        l += it.next.asInstanceOf[IRStmt]
+      block(l,pattern)
+    }
+    
+	def block(stmts:List[IRStmt],pattern:List[Statement]):Context = {
 	  (stmts,pattern) match {
 	    case (s::ss,Wildcard()::p::ps) =>
-	      unifyStmt(s,p) && ()=> block(ss,ps) || block(ss,WildCard()::p::ps)
-	    case (s::ss,p::ps) => unifyStmt(s,p) && ()=>block(ss,ps)
-	    case (Nil,Wildcard()) => c(true)
+	      unifyStmt(s,p) && (()=> block(ss,ps)) || (() => block(ss,Wildcard()::p::ps))
+	    case (s::ss,p::ps) => unifyStmt(s,p) && (()=>block(ss,ps))
+	    case (Nil,Wildcard() :: Nil) => c(true)
 	    case (Nil,_) => c(false)
 	  }
 	}
@@ -101,14 +110,16 @@ class ASTPatternMatcher {
       // wildcard matches many statements
       // TODO: ignore non-matching prefix/suffix
       case (stmt:Block,SBlock(stmts)) => {
-	// recurse over list, destroying
-	block(stmt.getStatements.iterator,stmts)
+    	  // recurse over list, destroying
+          // TODO: FIX
+          val l:List[IRStmt] = null //stmt.statements.iterator
+    	  block(l,stmts)
       }
 
       // block matching for single statement blocks
       case (stmt:Block,pat) => {
-	stmts = stmt.getStatements
-	guard (stmts.size == 1, () => unifyStmt(stmt.get(0),pat))
+    	  val stmts = stmt.statements
+    	  guard (stmts.size == 1, () => unifyStmt(stmts.get(0).asInstanceOf[IRStmt],pat))
       }
       
       case (stmt:ExpressionStatement,SideEffectExpr(expr)) => unifyExpr(stmt.getExpression,expr)
@@ -121,7 +132,7 @@ class ASTPatternMatcher {
         unifyExpr(stmt.getExpression,cond) & unifyStmt(stmt.getThenStatement(),tb) & unifyStmt(stmt.getElseStatement(),fb)
       case (stmt:WhileStatement,While(cond,body)) =>
         unifyExpr(stmt.getExpression,cond) & unifyStmt(stmt.getBody,body)
-      case (stmt:DoStatement,Do(cond,body)) =>
+      case (stmt:DoStatement,Do(body,cond)) =>
         unifyExpr(stmt.getExpression,cond) & unifyStmt(stmt.getBody,body)
       case (stmt:TryStatement,TryCatchFinally(tryB,catchB,finallyB)) => {
         // TODO: multiple catch clauses
@@ -143,18 +154,18 @@ class ASTPatternMatcher {
         )
       }
       case (stmt:SynchronizedStatement, Synchronized(body,lock)) =>
-	unifyExpr(stmt.getExpression,lock) && () => unifyStmt(stmt.getBody,body)
-      case (stmt:SwitchStatement, Switch(stmts,cond) =>
-	unifyExpr(stmt.getExpression,cond) && () => block(stmt.statements.iterator,stmts)
+      	unifyExpr(stmt.getExpression,lock) && (() => unifyStmt(stmt.getBody,body))
+      case (stmt:SwitchStatement, Switch(stmts,cond)) =>
+		unifyExpr(stmt.getExpression,cond) && (() => blockIt(stmt.statements,stmts))
       case (stmt:SwitchCase,DefaultCase()) => c(stmt.isDefault)
-      case (stmt:SwitchCase,SSwitchCase(expr)) => unifyExpr(stmt.getExpression,expr)
+      case (stmt:SwitchCase,Switchcase(expr)) => unifyExpr(stmt.getExpression,expr)
       case (stmt:BreakStatement,Break(mv)) => one(mv,stmt.getLabel)
       case (stmt:ContinueStatement,Continue(mv)) => one(mv,stmt.getLabel)
       case (stmt:AssertStatement,Assert(expr)) => unifyExpr(stmt.getExpression,expr)
       case (stmt:ConstructorInvocation,Constructor(exprs)) =>
-	unifyExprs(stmt.getExpressions.iterator,exprs)
+      	unifyExprs(stmt.arguments,exprs)
       case (stmt:SuperConstructorInvocation,SuperConstructor(exprs)) =>
-	unifyExprs(stmt.getExpressions.iterator,exprs)
+      	unifyExprs(stmt.arguments,exprs)
       case _ => c(false)
     }
   }
@@ -270,7 +281,7 @@ class Context(st:Boolean,vals:MMap[String,ASTNode]) extends Cloneable[Context] {
     new Context(status,values ++ other.values)
   }
 
-  def &&(other:()=>Context):Context = &(other())
+  def &&(other:()=>Context):Context = this & other()
   
   def add(arg:(String,ASTNode)):Context = {
     val (metavar,node) = arg

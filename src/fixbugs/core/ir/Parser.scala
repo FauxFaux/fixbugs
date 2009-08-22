@@ -75,14 +75,14 @@ object Parser extends RegexParsers {
   def tcf = ("try"~>block)~("catch"~>block)~("finally"~>block) ^^ {case t~c~f => TryCatchFinally(t,c,f) }
   def see = expression <~ ";" ^^ { SideEffectExpr(_) }
   def block = "{" ~> statements <~ "}" ^^ { SBlock(_)}
-  def return = "return" ~> expression <~ ";" ^^ {Return(_)}
+  def returnStmt = "return" ~> expression <~ ";" ^^ {Return(_)}
   def throww = "throw" ~> expression <~ ":" ^^ {Throw(_)}
-  def fors = "for" ~> "(" ~> (forLoop | foreach)
+  def fors = "for" ~> "(" ~> (forLoop ) //| foreach)
   def forLoop = expression ~ (";" ~> expression) ~ (";" ~> expression) ~ statement ^^ {
     case init~cond~updaters~stmt => For(List(init),cond,List(updaters),stmt)
   }
   def foreach = "TODO"
-  def do = ("do" ~> statement) ~ ("while" ~> "(" ~> expression <~ ")" <~ ";") ^^ {
+  def doLoop = ("do" ~> statement) ~ ("while" ~> "(" ~> expression <~ ")" <~ ";") ^^ {
     case s~e => Do(s,e)
   }
   def sync = ("synchronized" ~> "(" ~> expression <~ ")") ~ block ^^ {
@@ -96,13 +96,12 @@ object Parser extends RegexParsers {
   def break = "break" ~> literal <~ ";" ^^ { Break(_) }
   def continue = "continue" ~> literal <~ ";" ^^ { Continue(_) }
   def assert = "assert" ~> expression <~ ";" ^^ { Assert(_) }
-  def cons = "this" ~> "(" ~> exprs <~ ")" ^^ {Constructor(List(_))}
-  def scons = "super" ~> "(" ~> exprs <~ ")" ^^ {Constructor(List(_))}
+  //def cons = "this" ~> "(" ~> exprs <~ ")" ^^ {Constructor(List(_:Expression))}
+  //def scons = "super" ~> "(" ~> exprs <~ ")" ^^ {Constructor(List(_:Expression))}
 
-  def statement =  lb | wc | ass | ifelse | loop | see | do | sync | switch | default | switchcase | break | continue | assert | cons | scons | fors
+  def statement:Parser[Statement] =  lb | wc | ass | ifelse | loop | see | doLoop | sync | switch | default | switchcase | break | continue | assert | fors //cons | scons | fors
   
-  def statements:Parser[List[Product with Statement]] = statement*
-  def block = "{"~>statements<~"}"  ^^ { SBlock(_) }
+  def statements:Parser[List[Statement]] = statement*
   def sblock = statements ^^ { SBlock(_) }
   
   // Side Condition Matching
