@@ -1,22 +1,33 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <?eclipse.ant.import?>
 <project basedir="." default="build" name="FixbugsPlugin">
+    <!-- scalac task creation -->
+    <property name="scala.home" value="/home/richard/progs/scala/" />
     <property environment="env"/>
-    <property name="ECLIPSE_HOME" value="../../../eclipse-galileo"/>
+    <property name="ECLIPSE_HOME" value="../../eclipses/galileo/"/>
     <property name="debuglevel" value="source,lines,vars"/>
     <property name="target" value="1.5"/>
     <property name="source" value="1.5"/>
+    <path id="scala.classpath">
+        <pathelement location="${scala.home}/lib/scala-compiler.jar"   />
+        <pathelement location="${scala.home}/lib/scala-library.jar"   />
+    </path>
+    <taskdef resource="scala/tools/ant/antlib.xml">
+      <classpath refid="scala.classpath"/>
+    </taskdef>
     <path id="Plug-in Dependencies.libraryclasspath">
+        <!--
+        <pathelement location="${ECLIPSE_HOME}/plugins/org.eclipse.swt.cocoa.macosx_3.5.0.v3550b.jar"/>
+        <pathelement location="${ECLIPSE_HOME}/plugins/javax.transaction_1.1.1.v200906161300.jar"/>
+        <pathelement location="${ECLIPSE_HOME}/plugins/org.eclipse.persistence.jpa.equinox.weaving_1.1.2.v20090612-r4475.jar"/>
+        -->
         <pathelement location="${ECLIPSE_HOME}/plugins/org.eclipse.ui_3.5.0.I20090604-2000.jar"/>
         <pathelement location="${ECLIPSE_HOME}/plugins/org.eclipse.swt_3.5.0.v3550b.jar"/>
-        <pathelement location="${ECLIPSE_HOME}/plugins/org.eclipse.swt.cocoa.macosx_3.5.0.v3550b.jar"/>
         <pathelement location="${ECLIPSE_HOME}/plugins/org.eclipse.jface_3.5.0.I20090525-2000.jar"/>
         <pathelement location="${ECLIPSE_HOME}/plugins/org.eclipse.core.commands_3.5.0.I20090525-2000.jar"/>
         <pathelement location="${ECLIPSE_HOME}/plugins/org.eclipse.ui.workbench_3.5.0.I20090603-2000.jar"/>
         <pathelement location="${ECLIPSE_HOME}/plugins/org.eclipse.core.runtime_3.5.0.v20090525.jar"/>
         <pathelement location="${ECLIPSE_HOME}/plugins/org.eclipse.osgi_3.5.0.v20090520.jar"/>
-        <pathelement location="${ECLIPSE_HOME}/plugins/javax.transaction_1.1.1.v200906161300.jar"/>
-        <pathelement location="${ECLIPSE_HOME}/plugins/org.eclipse.persistence.jpa.equinox.weaving_1.1.2.v20090612-r4475.jar"/>
         <pathelement location="${ECLIPSE_HOME}/plugins/org.eclipse.equinox.common_3.5.0.v20090520-1800.jar"/>
         <pathelement location="${ECLIPSE_HOME}/plugins/org.eclipse.core.jobs_3.4.100.v20090429-1800.jar"/>
         <pathelement location="${ECLIPSE_HOME}/plugins/org.eclipse.core.runtime.compatibility.registry_3.2.200.v20090429-1800/runtime_registry_compatibility.jar"/>
@@ -31,11 +42,10 @@
         <pathelement location="${ECLIPSE_HOME}/plugins/org.eclipse.jface.text_3.5.0.v20090602.jar"/>
         <pathelement location="${ECLIPSE_HOME}/plugins/org.eclipse.text_3.5.0.v20090513-2000.jar"/>
     </path>
-    <path id="Persisted container [ch.epfl.lamp.sdt.launching.SCALA_CONTAINER for project [FixbugsPlugin]].libraryclasspath"/>
     <path id="FixbugsPlugin.classpath">
         <path refid="Plug-in Dependencies.libraryclasspath"/>
+        <path refid="scala.classpath" />
         <pathelement location="bin"/>
-        <path refid="Persisted container [ch.epfl.lamp.sdt.launching.SCALA_CONTAINER for project [FixbugsPlugin]].libraryclasspath"/>
         <pathelement location="lib/asm-all-3.2.jar"/>
         <pathelement location="lib/ScalaCheck-1.5.jar"/>
         <pathelement location="lib/scalatest-0.9.5.jar"/>
@@ -59,30 +69,13 @@
         <delete dir="bin"/>
     </target>
     <target depends="clean" name="cleanall"/>
-    <target depends="build-subprojects,build-project" name="build"/>
-    <target depends="init" name="build-project">
-        <echo message="${ant.project.name}: ${ant.file}"/>
-        <javac debug="true" debuglevel="${debuglevel}" destdir="bin" source="${source}" target="${target}">
-            <src path="src"/>
-            <classpath refid="FixbugsPlugin.classpath"/>
-        </javac>
-        <javac debug="true" debuglevel="${debuglevel}" destdir="bin" source="${source}" target="${target}">
-            <src path="tests"/>
-            <classpath refid="FixbugsPlugin.classpath"/>
-        </javac>
-    </target>
-    <target description="Build all projects which reference this project. Useful to propagate changes." name="build-refprojects"/>
-    <target description="copy Eclipse compiler jars to ant lib directory" name="init-eclipse-compiler">
-        <copy todir="${ant.library.dir}">
-            <fileset dir="${ECLIPSE_HOME}/plugins" includes="org.eclipse.jdt.core_*.jar"/>
-        </copy>
-        <unzip dest="${ant.library.dir}">
-            <patternset includes="jdtCompilerAdapter.jar"/>
-            <fileset dir="${ECLIPSE_HOME}/plugins" includes="org.eclipse.jdt.core_*.jar"/>
-        </unzip>
-    </target>
-    <target description="compile project with Eclipse compiler" name="build-eclipse-compiler">
-        <property name="build.compiler" value="org.eclipse.jdt.core.JDTCompilerAdapter"/>
-        <antcall target="build"/>
+    <target name="build" depends="init">
+        <scalac srcdir="src"
+            destdir="bin"
+            classpathref="FixbugsPlugin.classpath"
+            force="changed">
+        <!--<include name="compile/**/*.scala" />
+        <exclude name="forget/**/*.scala" />-->
+        </scalac>
     </target>
 </project>

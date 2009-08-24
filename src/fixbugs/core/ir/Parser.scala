@@ -96,8 +96,8 @@ object Parser extends RegexParsers {
   def break = "break" ~> literal <~ ";" ^^ { Break(_) }
   def continue = "continue" ~> literal <~ ";" ^^ { Continue(_) }
   def assert = "assert" ~> expression <~ ";" ^^ { Assert(_) }
-  def cons = "this" ~> "(" ~> exprs <~ ")" ^^ {Constructor(List(_:Expression))}
-  def scons = "super" ~> "(" ~> exprs <~ ")" ^^ {SuperConstructor(List(_:Expression))}
+  def cons = "this" ~> "(" ~> expression <~ ")" ^^ {e => Constructor(List(e))}
+  def scons = "super" ~> "(" ~> expression <~ ")" ^^ {e => SuperConstructor(List(e))}
 
   def statement:Parser[Statement] =
     lb | wc | ass | ifelse | loop | see | doLoop | 
