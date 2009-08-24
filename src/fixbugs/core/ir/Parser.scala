@@ -96,10 +96,13 @@ object Parser extends RegexParsers {
   def break = "break" ~> literal <~ ";" ^^ { Break(_) }
   def continue = "continue" ~> literal <~ ";" ^^ { Continue(_) }
   def assert = "assert" ~> expression <~ ";" ^^ { Assert(_) }
-  //def cons = "this" ~> "(" ~> exprs <~ ")" ^^ {Constructor(List(_:Expression))}
-  //def scons = "super" ~> "(" ~> exprs <~ ")" ^^ {Constructor(List(_:Expression))}
+  def cons = "this" ~> "(" ~> exprs <~ ")" ^^ {Constructor(List(_:Expression))}
+  def scons = "super" ~> "(" ~> exprs <~ ")" ^^ {SuperConstructor(List(_:Expression))}
 
-  def statement:Parser[Statement] =  lb | wc | ass | ifelse | loop | see | doLoop | sync | switch | default | switchcase | break | continue | assert | fors //cons | scons | fors
+  def statement:Parser[Statement] =
+    lb | wc | ass | ifelse | loop | see | doLoop | 
+    sync | switch | default | switchcase | 
+    break | continue | assert | fors | cons | scons
   
   def statements:Parser[List[Statement]] = statement*
   def sblock = statements ^^ { SBlock(_) }

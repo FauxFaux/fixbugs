@@ -14,7 +14,6 @@ import fixbugs.util.EclipseUtil.parse
  * Proceeds recursively:
  * unify(node,ir,context) returns a true iff the node is unifiable with the ir and updates the environment if so
  * 
- * TODO: blocks, Currently only looking at a /statement level
  */
 class ASTPatternMatcher {
    
@@ -111,9 +110,7 @@ class ASTPatternMatcher {
       // TODO: ignore non-matching prefix/suffix
       case (stmt:Block,SBlock(stmts)) => {
     	  // recurse over list, destroying
-          // TODO: FIX
-          val l:List[IRStmt] = null //stmt.statements.iterator
-    	  block(l,stmts)
+          blockIt(stmt.statements,stmts)
       }
 
       // block matching for single statement blocks
@@ -260,7 +257,7 @@ class Context(st:Boolean,vals:MMap[String,ASTNode]) extends Cloneable[Context] {
   
   /**
    * NB: lazily creates other context
-   * TODO: figure out if this makes complete sense - should it be product?
+   * TODO: figure out if this makes complete sense - should it be set based?
    */
   def ||(other:(()=>Context)):Context = {
     if(status)
