@@ -1,21 +1,16 @@
 package fixbugs.core.ir
-import scala.util.parsing.combinator.RegexParsers
-import scala.util.matching.Regex
-
+import scala.util.parsing.combinator.syntactical._
 import org.eclipse.jdt.core.dom.InfixExpression.{Operator => Op}
 import org.eclipse.jdt.core.dom.PostfixExpression.{Operator => PostOp}
 
 /**
  * Parses Fixbugs transformations
  */
-object Parser extends RegexParsers {
+object Parser extends StandardTokenParsers {
 
   // Common
-  override def skipWhitespace = true
-  def r(s:String) = regex(new Regex(s))
-  def literal = r("[a-z0-9][a-zA-Z0-9-]*")
-  def variable = r("[A-Z][a-zA-Z0-9-]*")
-  
+  //override def skipWhitespace = true
+
   val operators = List(
     Op.AND,
     Op.CONDITIONAL_AND,
@@ -40,38 +35,43 @@ object Parser extends RegexParsers {
   
   val postfix = List(PostOp.DECREMENT, PostOp.INCREMENT)
 
-  // No code reuse because of lack of common supertype
-  // TODO: try structural type refinements
-  def infixOperator:Parser[Op] = {
-    def parseOp(op:Op):Parser[Op] = literal(op.toString) ^^ Op.toOperator
-    operators.tail.map(parseOp).foldLeft(parseOp(operators.head))(_|_)
+  val other = List(";",":","(",")","....","=","{","}") ++
+    // side condition
+    List("^","|","¬","[","]","@")
+
+  lexical.delimiters ++= (operators ++ postfix ++ other).map(_.toString)
+
+  lexical.reserved += ("if","else","while","try","catch","finally",
+    "return","throw","for","do","synchronized","switch","default",
+    "case","break","continue","assert","this","super",
+    // Side conditions
+    "F","G","X","U","true","True","false","False","is","A","E","and","or","not",
+    "REPLACE","WITH","THEN","WHERE")
+
+  def postFix:Parser[PostOp] = ("++" | "--") ^^ PostOp.toOperator
+  def inFix:Parser[Op] = {
+    def p(op:Op):Parser[Op] = op.toString ^^ Op.toOperator
+    operators.tail.map(p).foldLeft(p(operators.head))(_|_)
   }
-  
-  def postfixOperator:Parser[PostOp] = {
-    def parseOp(op:PostOp):Parser[PostOp] = literal(op.toString) ^^ PostOp.toOperator
-    postfix.tail.map(parseOp).foldLeft(parseOp(postfix.head))(_|_)
-  }
-  
-  // Statement parsing
-  def lit = literal ~ opt("("~> (expression*) <~ ")") ^^ (x => x match {
-    case l~None => Metavar(l)
-    case l~Some(e) => Method(l,e)
+
+  // TODO: arguments for methods
+  def inner = ident ^^ {Metavar(_)} 
+
+  def unary = inner ~ opt(postFix) ^^ (x => x match {
+      case e~None => e
+      case e~Some(o) => UnOp(e,o)
   })
   
-  def un = expression ~ postfixOperator ^^ {case e~o => UnOp(e,o)} | lit
-  def expression:Parser[Expression] = (un ~ opt(infixOperator ~ expression)) ^^ (x => x match { 
+  def expression:Parser[Expression] = (unary ~ opt(inFix ~ expression)) ^^ (x => x match { 
   	case u~None => u
   	case u~Some(op~ex) => BinOp(u,ex,op)
   })
- 
-  // TODO: check the scala docs for pro way to do this
-  def exprs = expression
- 
-  def lb:Parser[Label] = (variable <~ ":") ~ statement ^^ { case l~s => Label(l,s) }
-  def wc = r("....") ^^ { l => Wildcard() }
-  def ass = variable ~ expression ^^ { case v~e => Assignment(v,e) }
-  def ifelse = ("if"~>"("~>expression<~")")~block~("else"~>block) ^^ { case c~t~f => IfElse(c,t,f) }
-  def loop = ("while"~>"("~>expression<~")")~block ^^ { case c~b => While(c,b) }
+
+  def lb = (ident <~ ":") ~ statement ^^ { case l~s => Label(l,s) }
+  def wc = "...." ^^ { l => Wildcard() }
+  def ass = ident ~ ("=" ~> expression <~ ";") ^^ { case v~e => Assignment(v,e) }
+  def ifelse = ("if"~>"("~>expression<~")")~statement~("else"~>statement) ^^ { case c~t~f => IfElse(c,t,f) }
+  def loop = ("while"~>"("~>expression<~")")~statement ^^ { case c~b => While(c,b) }
   def tcf = ("try"~>block)~("catch"~>block)~("finally"~>block) ^^ {case t~c~f => TryCatchFinally(t,c,f) }
   def see = expression <~ ";" ^^ { SideEffectExpr(_) }
   def block = "{" ~> statements <~ "}" ^^ { SBlock(_)}
@@ -81,7 +81,6 @@ object Parser extends RegexParsers {
   def forLoop = expression ~ (";" ~> expression) ~ (";" ~> expression) ~ statement ^^ {
     case init~cond~updaters~stmt => For(List(init),cond,List(updaters),stmt)
   }
-  def foreach = "TODO"
   def doLoop = ("do" ~> statement) ~ ("while" ~> "(" ~> expression <~ ")" <~ ";") ^^ {
     case s~e => Do(s,e)
   }
@@ -93,20 +92,19 @@ object Parser extends RegexParsers {
   }
   def default = "default" ~ ";" ^^ { _ => DefaultCase() }
   def switchcase = "case" ~> expression <~ ":" ^^ { Switchcase(_) }
-  def break = "break" ~> literal <~ ";" ^^ { Break(_) }
-  def continue = "continue" ~> literal <~ ";" ^^ { Continue(_) }
+  def break = "break" ~> ident <~ ";" ^^ { Break(_) }
+  def continue = "continue" ~> ident <~ ";" ^^ { Continue(_) }
   def assert = "assert" ~> expression <~ ";" ^^ { Assert(_) }
   def cons = "this" ~> "(" ~> expression <~ ")" ^^ {e => Constructor(List(e))}
   def scons = "super" ~> "(" ~> expression <~ ")" ^^ {e => SuperConstructor(List(e))}
 
   def statement:Parser[Statement] =
-    lb | wc | ass | ifelse | loop | see | doLoop | 
-    sync | switch | default | switchcase | 
-    break | continue | assert | fors | cons | scons
-  
+    lb | wc | ass | ifelse | loop | tcf | see | block |
+    returnStmt | throww | fors | doLoop | sync | switch | default |
+    switchcase | break | continue | assert | cons | scons
+
   def statements:Parser[List[Statement]] = statement*
-  def sblock = statements ^^ { SBlock(_) }
-  
+
   // Side Condition Matching
   def future = "F" ~> node ^^ (Future(_))
   def global = "G" ~> node ^^ (Global(_))
@@ -114,34 +112,41 @@ object Parser extends RegexParsers {
   def until = node ~ "U" ~ node ^^ {case l~_~r => Until(l,r)}
   
   def path = future | global | next | until
-  
+
   def _true = "true" ^^ (_=>True())
   def _false = "false" ^^ (_=>False())
-  def and = node ~ "^" ~ node ^^ {case l~_~r => And(l,r)}
-  def or = node ~ "|" ~ node ^^ {case l~_~r => Or(l,r)}
-  def not = "¬" ~ node ^^ {case _~n => Not(n)}
-  def brackets= "("~>node<~")"
-  def pred = "is"~>variable ^^ (NodePred(_))
-  def all = "A[" ~> path <~"]" ^^ (All(_))
-  def ex = "E[" ~> path <~ "]" ^^ (Exists(_))
+  def _inner = _true | _false | "(" ~> node <~")"
+  def _unary = _inner |
+    ("¬" ~ _inner ^^ {case _~n => Not(n)}) |
+    "is"~>ident ^^ (NodePred(_)) |
+    "A"~>"[" ~> path <~"]" ^^ (All(_)) |
+    "E"~>"[" ~> path <~ "]" ^^ (Exists(_))
+  def _binary:Parser[NodeCondition] = _unary ~ opt(("^" | "|") ~ node) ^^ (x => x match {
+    case in~None => in
+    case l~Some("^"~r) => And(l,r)
+    case l~Some("|"~r) => Or(l,r)
+  })
+  def node:Parser[NodeCondition] = _binary
   
-  def node:Parser[NodeCondition] =
-	 _true | _false | and | or | not | brackets | pred | all | ex
+  def $inner = "True" ^^ (_=>STrue()) | "False" ^^ (_=>SFalse())
+  def $unary = $inner |
+    "(" ~> side <~ ")" |
+    ("{"~>node<~"}") ~ "@" ~ ident ^^ {case n~_~v => Satisfies(v,n)} |
+    "not" ~> side ^^ {case s => SNot(s)}
+  def $binary:Parser[SideCondition] = $unary ~ opt(("and"|"or") ~ $binary) ^^ (x => x match {
+    case u~None => u
+    case l~Some("and"~r) => SAnd(l,r)
+    case l~Some("or"~r) => SOr(l,r)
+  })
   
-  def sat = ("{"~>node<~"}") ~ "@" ~ variable ^^ {case n~_~v => Satisfies(v,n)}
-  def sand = side ~ "and" ~ side ^^ {case l~_~r => SAnd(l,r)}
-  def sor = side ~ "or" ~ side ^^ {case l~_~r => SOr(l,r)}
-  def snot = "not" ~> side ^^ {case s => SNot(s)}
-  
-  def side:Parser[SideCondition] =  sat | sand | sor | snot
+  def side:Parser[SideCondition] = $binary
   
   // Transformations
-  def replace = ("REPLACE"~> sblock)~ ("WITH" ~> sblock) ~ ("WHERE" ~> side) ^^ {
+  def replace = ("REPLACE"~> statement)~ ("WITH" ~> statement) ~ ("WHERE" ~> side) ^^ {
     case from~to~cond => Replace(from,to,cond)
   }
-  def then = (trans <~ "then") ~ trans ^^ {case l~r => Then(l,r)}
+  def then = (trans <~ "THEN") ~ trans ^^ {case l~r => Then(l,r)}
   
-  def trans:Parser[Transformation] = replace | then
-  
+  def trans:Parser[Transformation] = replace //| then
 }
 

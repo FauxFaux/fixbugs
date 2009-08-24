@@ -78,4 +78,13 @@
         <exclude name="forget/**/*.scala" />-->
         </scalac>
     </target>
+    <target name="tests" depends="build">
+        <scalac srcdir="tests"
+            destdir="bin"
+            classpathref="FixbugsPlugin.classpath"
+            force="changed" />
+        <java classname="fixbugs.core.ir.CoreTestSuite"
+            classpathref="FixbugsPlugin.classpath"
+        />
+    </target>
 </project>
