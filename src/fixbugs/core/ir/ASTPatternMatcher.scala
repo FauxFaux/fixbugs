@@ -250,11 +250,13 @@ class ASTPatternMatcher {
  * Immutable Context Object
  * Note: wraps mutable map for simplicity
  */
-class Context(st:Boolean,vals:MMap[String,ASTNode]) extends Cloneable[Context] {
+class Context(st:Boolean,vals:MMap[String,ASTNode]) extends Cloneable[Context] with Function1[String, ASTNode] {
   
   val values = vals
   val status = st
   
+  def apply(name:String) = values(name)
+
   /**
    * NB: lazily creates other context
    * TODO: figure out if this makes complete sense - should it be set based?
