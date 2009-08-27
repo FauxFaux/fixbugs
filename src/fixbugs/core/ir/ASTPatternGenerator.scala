@@ -13,7 +13,7 @@ import fixbugs.util.EclipseUtil.parse
  * Generates Eclipse AST for replacement, from a fixbugs Pattern and a Context
  * 
  */
-class ASTPatternGenerator(ast:AST,rewrite:ASTRewrite, context:Context) {
+class ASTPatternGenerator(ast:AST,rewrite:ASTRewrite, context:Map[String,ASTNode]) {
   
   def get[X](name:String):X = rewrite.createCopyTarget(context(name)).asInstanceOf[X]
 
@@ -22,12 +22,12 @@ class ASTPatternGenerator(ast:AST,rewrite:ASTRewrite, context:Context) {
    */
   def generate(stmt:Stmt):IRStmt = stmt match {
     case Wildcard() => throw new Exception("Internal Error, cannot generate anything for a wildcard")
-    case Assignment(what,init) => {
+    case Assignment(typee,what,init) => {
         val assign = ast.newVariableDeclarationFragment
         assign.setInitializer(generate(init))
         assign.setName(get(what))
         val assignStmt = ast.newVariableDeclarationStatement(assign)
-        // TODO: bind and set type
+        assignStmt.setType(generate(typee))
         assignStmt
     }
     case IfElse(cond,thenBlock,elseBlock) => {
@@ -102,13 +102,18 @@ class ASTPatternGenerator(ast:AST,rewrite:ASTRewrite, context:Context) {
         stmt.setExpression(generate(expr))
         stmt
     }
-    // TODO: check if this is default
-    case DefaultCase() => ast.newSwitchCase
+    case DefaultCase() => {
+        val default = ast.newSwitchCase
+        // This makes me cry a little
+        default.setExpression(null)
+        default
+    }
     case Label(_,_) => throw new Exception("Label Patterns aren't reconstructable")
     case TryCatchFinally(tryB,catchB,finallyB) => {
         val stmt = ast.newTryStatement
         stmt.setBody(generateBlock(tryB))
-        // TODO: same generics issue on catch
+        // TODO: catch block
+        val catches = stmt.catchClauses.asInstanceOf[java.util.List[CatchClause]]
         stmt.setFinally(generateBlock(finallyB))
         stmt
     }
@@ -181,7 +186,6 @@ class ASTPatternGenerator(ast:AST,rewrite:ASTRewrite, context:Context) {
         expr
     }
     case New(typee,args) => {
-        // TODO: expression
         val expr = ast.newClassInstanceCreation
         expr.setType(generate(typee))
         val argList = expr.arguments.asInstanceOf[java.util.List[IRExpr]]
@@ -203,11 +207,10 @@ class ASTPatternGenerator(ast:AST,rewrite:ASTRewrite, context:Context) {
   }
 
   def generate(typee:TypePattern):Type = typee match {
-    // TODO: check about lookups and reference equality
-    case PrimType(name) => ast.newPrimitiveType(PrimitiveType.INT)
-    // TODO: check equality
+    case PrimType(name) => ast.newPrimitiveType(PrimitiveType.toCode(name))
     case SimpType(name) => ast.newSimpleType(ast.newName(name))
     case ArraType(ofType) => ast.newArrayType(generate(ofType))
+    case TypeMetavar(name) => get(name)
   }
 
 }

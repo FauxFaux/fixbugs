@@ -9,7 +9,8 @@ sealed abstract class Statement {}
 case class Label(lbl:String,stmt:Statement) extends Statement
 /** Matches one of more statements */
 case class Wildcard() extends Statement
-case class Assignment(what:String,to:Expression) extends Statement
+// modifiers, match fragments
+case class Assignment(typee:TypePattern,what:String,to:Expression) extends Statement
 case class IfElse(cond:Expression,trueBlock:Statement,falseBlock:Statement) extends Statement
 case class While(cond:Expression,body:Statement) extends Statement
 case class TryCatchFinally(tryBlock:SBlock,catchBlock:SBlock,finallyBlock:SBlock) extends Statement
