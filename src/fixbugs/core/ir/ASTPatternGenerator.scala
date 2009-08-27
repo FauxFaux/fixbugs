@@ -77,24 +77,23 @@ class ASTPatternGenerator(ast:AST,rewrite:ASTRewrite, context:Context) {
     }
     case Synchronized(body,lock) => {
         val stmt = ast.newSynchronizedStatement
-        // TODO; block support
-        //stmt.setBody(generate(body))
+        stmt.setBody(generateBlock(body.asInstanceOf[SBlock]))
         stmt.setExpression(generate(lock))
         stmt
     }
     case Constructor(args) => {
         val stmt = ast.newConstructorInvocation
-        // TODO: same generics issue
+        addArgs(stmt,args)
         stmt
     }
     case SuperConstructor(args) => {
         val stmt = ast.newSuperConstructorInvocation
-        // TODO: same generics issue
+        addArgs(stmt,args)
         stmt
     }
     case Switch(stmts,expr) => {
         val stmt = ast.newSwitchStatement
-        // TODO: same generics issue
+        addToStmt(stmt,stmts)
         stmt.setExpression(generate(expr))
         stmt
     }
@@ -128,13 +127,32 @@ class ASTPatternGenerator(ast:AST,rewrite:ASTRewrite, context:Context) {
         val stmt = ast.newForStatement
         stmt.setExpression(generate(cond))
         stmt.setBody(generate(body))
-        // TODO: generics issue on initializers and updaters
+        addExprs(stmt.initializers,init)
+        addExprs(stmt.updaters,updaters)
         stmt
     }
   }
 
-  def generateBlock(block:SBlock):Block = ast.newBlock
-        // TODO: generics: stmts.map(generate)
+  def generateBlock(sblock:SBlock):Block = {
+    val block = ast.newBlock
+    addToStmt(block,sblock.stmts)
+    block
+  }
+
+  def addArgs(stmt:{ def arguments():java.util.List[_]},args:List[Expr]) = addExprs(stmt.arguments,args)
+  
+  def addExprs(exprs:java.util.List[_],vals:List[Expr]) = {
+    val argList = exprs.asInstanceOf[java.util.List[IRExpr]]
+    for(arg <- vals)
+        argList.add(generate(arg))
+  }
+  
+  def addToStmt(stmt:{ def statements():java.util.List[_]},vals:List[Stmt]) = addStmts(stmt.statements,vals)
+  def addStmts(exprs:java.util.List[_],vals:List[Stmt]) = {
+    val argList = exprs.asInstanceOf[java.util.List[IRStmt]]
+    for(arg <- vals)
+        argList.add(generate(arg))
+  }
 
   /**
    * Generates expressions
@@ -166,9 +184,9 @@ class ASTPatternGenerator(ast:AST,rewrite:ASTRewrite, context:Context) {
         // TODO: expression
         val expr = ast.newClassInstanceCreation
         expr.setType(generate(typee))
-        // TODO: fix fail generics
-        //for(arg <- args)
-        //    expr.arguments.add(generate(arg))
+        val argList = expr.arguments.asInstanceOf[java.util.List[IRExpr]]
+        for(arg <- args)
+            argList.add(generate(arg))
         expr
     }
     case InstanceOf(typee,inner) => {
@@ -179,7 +197,7 @@ class ASTPatternGenerator(ast:AST,rewrite:ASTRewrite, context:Context) {
     }
     case ArrayInit(exprs) => {
         val expr = ast.newArrayInitializer
-        // TODO: generics issue
+        addExprs(expr.expressions,exprs)
         expr
     }
   }
