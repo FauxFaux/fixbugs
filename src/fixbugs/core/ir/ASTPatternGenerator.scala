@@ -8,6 +8,7 @@ import org.eclipse.jdt.core.dom.rewrite._
 import org.eclipse.jdt.core.dom.{Statement => IRStmt, Expression => IRExpr, Assignment => IRAssign}
 import fixbugs.core.ir.{Statement => Stmt,Expression => Expr,Assignment => Assign}
 import fixbugs.util.EclipseUtil.parse
+import scala.collection.mutable.{Map => MMap}
 
 /**
  * Generates Eclipse AST for replacement, from a fixbugs Pattern and a Context
@@ -15,7 +16,17 @@ import fixbugs.util.EclipseUtil.parse
  */
 class ASTPatternGenerator(ast:AST,rewrite:ASTRewrite, context:Map[String,ASTNode]) {
   
-  def get[X](name:String):X = rewrite.createCopyTarget(context(name)).asInstanceOf[X]
+  val con = MMap() ++ context.map({case (k,v) => (k,(v,false))})
+
+  def get[X](name:String):X = {
+      val (x,used) = con(name)
+      if(! used) {
+        con += name -> (x,true)
+        x.asInstanceOf[X]
+      } else {
+        ASTNode.copySubtree(ast,x).asInstanceOf[X]
+      }
+  }
 
   /**
    * Generates Statements
@@ -169,7 +180,7 @@ class ASTPatternGenerator(ast:AST,rewrite:ASTRewrite, context:Map[String,ASTNode
     case BinOp(l,r,op) => {
         val expr = ast.newInfixExpression
         expr.setLeftOperand(generate(l))
-        expr.setRightOperand(generate(l))
+        expr.setRightOperand(generate(r))
         expr.setOperator(op)
         expr
     }
