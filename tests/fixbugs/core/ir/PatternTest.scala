@@ -53,7 +53,7 @@ class PatternTest extends Spec with ShouldMatchers {
   def cond(pat:Statement) = unify(conditional,pat)
   
   describe("assignments and labels") {
-    val xy = s1(new Assignment("x",Metavar("y")))
+    val xy = s1(Assignment(null,"x",Metavar("y")))
     println("xy = " + xy)
     xy should have length 1
     val all = s1(Label("all",Wildcard()))
@@ -62,7 +62,7 @@ class PatternTest extends Spec with ShouldMatchers {
   }
   
   describe ("expressions") {
-    val x = s2(Assignment("x",BinOp(Metavar("1"),Metavar("y"),PLUS)))
+    val x = s2(Assignment(null,"x",BinOp(Metavar("1"),Metavar("y"),PLUS)))
     x should have length 1
     println("x = "+x)
     val y = s2(SideEffectExpr(UnOp(Metavar("y"),DECREMENT)))

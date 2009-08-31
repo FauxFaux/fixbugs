@@ -2,18 +2,21 @@
 <?eclipse.ant.import?>
 <project basedir="." default="build" name="FixbugsPlugin">
     <!-- scalac task creation -->
-    <property name="scala.home" value="/home/richard/progs/scala/" />
+    <property file="ant.props"/>
     <property environment="env"/>
-    <property name="ECLIPSE_HOME" value="../../eclipses/galileo/"/>
     <property name="debuglevel" value="source,lines,vars"/>
     <property name="target" value="1.5"/>
     <property name="source" value="1.5"/>
     <path id="scala.classpath">
-        <pathelement location="${scala.home}/lib/scala-compiler.jar"   />
-        <pathelement location="${scala.home}/lib/scala-library.jar"   />
+        <pathelement location="${scala.home}/lib/scala-compiler.jar" />
+        <pathelement location="${scala.home}/lib/scala-library.jar" />
     </path>
     <taskdef resource="scala/tools/ant/antlib.xml">
       <classpath refid="scala.classpath"/>
+      <!--<classpath>
+        <pathelement location="/home/mulletron/code/scala/scala/lib/scala-compiler.jar"/>
+        <pathelement location="/home/mulletron/code/scala/scala/lib/scala-library.jar"/>
+      </classpath>-->
     </taskdef>
     <path id="Plug-in Dependencies.libraryclasspath">
         <!--
@@ -86,5 +89,10 @@
         <java classname="fixbugs.core.ir.CoreTestSuite"
             classpathref="FixbugsPlugin.classpath"
         />
+    </target>
+    <target name="run" depends="build">
+        <java classname="fixbugs.Main" classpathref="FixbugsPlugin.classpath">
+            <arg path=""/>
+        </java>
     </target>
 </project>

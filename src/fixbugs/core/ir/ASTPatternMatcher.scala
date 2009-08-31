@@ -120,10 +120,10 @@ class ASTPatternMatcher {
       }
       
       case (stmt:ExpressionStatement,SideEffectExpr(expr)) => unifyExpr(stmt.getExpression,expr)
-      case (stmt:VariableDeclarationStatement,Assign(name,to)) => {
+      case (stmt:VariableDeclarationStatement,Assign(typee,name,to)) => {
         // TODO: multiple declarations
         val frag = stmt.fragments.get(0).asInstanceOf[VariableDeclarationFragment]
-        unifyExpr(frag.getInitializer,to) & one(name,frag.getName)
+        guard(checkType(stmt.getType,typee),() => unifyExpr(frag.getInitializer,to) & one(name,frag.getName))
       }
       case (stmt:IfStatement,IfElse(cond,tb,fb)) =>
         unifyExpr(stmt.getExpression,cond) & unifyStmt(stmt.getThenStatement(),tb) & unifyStmt(stmt.getElseStatement(),fb)
