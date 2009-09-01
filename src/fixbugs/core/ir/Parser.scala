@@ -67,10 +67,13 @@ object Parser extends StandardTokenParsers {
   	case u~Some(op~ex) => BinOp(u,ex,op)
   })
 
+  // definitions of type patterns
+  def typedef = ident <~ ":" ^^ { new TypeMetavar(_) }
+
   // TODO: types
   def lb = (ident <~ ":") ~ statement ^^ { case l~s => Label(l,s) }
   def wc = "...." ^^ { l => Wildcard() }
-  def ass = ident ~ ("=" ~> expression <~ ";") ^^ { case v~e => Assignment(null,v,e) }
+  def ass = typedef ~ ident ~ ("=" ~> expression <~ ";") ^^ { case t~v~e => Assignment(t,v,e) }
   def ifelse = ("if"~>"("~>expression<~")")~statement~("else"~>statement) ^^ { case c~t~f => IfElse(c,t,f) }
   def loop = ("while"~>"("~>expression<~")")~statement ^^ { case c~b => While(c,b) }
   def tcf = ("try"~>block)~("catch"~>block)~("finally"~>block) ^^ {case t~c~f => TryCatchFinally(t,c,f) }

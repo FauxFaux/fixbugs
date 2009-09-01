@@ -92,7 +92,9 @@
     </target>
     <target name="run" depends="build">
         <java classname="fixbugs.Main" classpathref="FixbugsPlugin.classpath">
-            <arg path=""/>
+            <arg path="${a}"/>
+            <arg path="${b}"/>
+            <arg path="${c}"/>
         </java>
     </target>
 </project>

@@ -4,6 +4,7 @@
 	<classpathentry kind="con" path="org.eclipse.pde.core.requiredPlugins"/>
 	<classpathentry kind="src" path="src"/>
 	<classpathentry kind="src" path="tests"/>
+	<classpathentry kind="src" path="progs"/>
 	<classpathentry kind="lib" path="lib/asm-all-3.2.jar"/>
 	<classpathentry kind="lib" path="lib/ScalaCheck-1.5.jar"/>
 	<classpathentry kind="lib" path="lib/scalatest-0.9.5.jar"/>
