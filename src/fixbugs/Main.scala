@@ -34,11 +34,14 @@ object Main {
         replace.apply(new lexical.Scanner(readFile(spec))) match {
             case Success(ord, _) => {
                 val Replace(from,to,cond) = ord
-                // pattern match the source
-                val matches = (new ASTPatternMatcher).unifyAll(srcContents,from)
-                // TODO: return '_from' in context
-                // generate and apply the replacement and print it out
-                matches.map(con => rewrite(ast,to,con,srcContents)).foreach(println(_))
+                (new ASTPatternMatcher)
+                    // pattern match the source
+                    .unifyAll(srcContents,from)
+                    // remove failing cases
+                    .filter(_.status)
+                    // generate replacement programs
+                    .map(con => rewrite(ast,to,con,srcContents))
+                    .foreach(println(_))
             }
             case Failure(msg, _) => println(srcContents,msg)
             case Error(msg, _) => println(srcContents,msg)

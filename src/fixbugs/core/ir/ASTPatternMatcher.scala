@@ -100,7 +100,7 @@ class ASTPatternMatcher {
    */
   def unifyStmt(node:IRStmt,pattern:Stmt):Context = {
     //println(node.getClass)
-    (node,pattern) match {
+    val con = (node,pattern) match {
      
       case (stmt,Label(lbl,statement)) => unifyStmt(stmt,statement) & one(lbl,stmt)
       case (stmt,Wildcard()) => c(true)
@@ -165,6 +165,8 @@ class ASTPatternMatcher {
       	unifyExprs(stmt.arguments,exprs)
       case _ => c(false)
     }
+    con.values += "_from" -> node
+    con
   }
 
   /**
