@@ -35,7 +35,7 @@ object Parser extends StandardTokenParsers {
   
   val postfix = List(PostOp.DECREMENT, PostOp.INCREMENT)
 
-  val other = List(";",":","(",")","....","=","{","}") ++
+  val other = List(";",":","(",")","....","=","{","}","::","\"","'") ++
     // side condition
     List("^","|","¬","[","]","@")
 
@@ -44,6 +44,8 @@ object Parser extends StandardTokenParsers {
   lexical.reserved += ("if","else","while","try","catch","finally",
     "return","throw","for","do","synchronized","switch","default",
     "case","break","continue","assert","this","super",
+    // types
+    "int","long","short","byte","float","double","char",
     // Side conditions
     "F","G","X","U","true","True","false","False","is","A","E","and","or","not",
     "REPLACE","WITH","THEN","WHERE")
@@ -68,11 +70,15 @@ object Parser extends StandardTokenParsers {
   })
 
   // definitions of type patterns
-  def typedef = ident <~ ":" ^^ { new TypeMetavar(_) }
-
   // TODO: types
+  def typedef = metaType | typeLit | primType
+  def metaType = "::" ~> ident ^^ {TypeMetavar(_)}
+  def typeLit = "'" ~> (ident ^^ {SimpType(_)}) <~ "'"
+  def primType = ("int"|"long"|"short"|"byte"|"float"|"double"|"char") ^^ {PrimType(_)}
+
   def lb = (ident <~ ":") ~ statement ^^ { case l~s => Label(l,s) }
-  def wc = "...." ^^ { l => Wildcard() }
+  def wc = "...." ^^ { _ => Wildcard() }
+  def skip = ";" ^^ { _ => Skip() }
   def ass = typedef ~ ident ~ ("=" ~> expression <~ ";") ^^ { case t~v~e => Assignment(t,v,e) }
   def ifelse = ("if"~>"("~>expression<~")")~statement~("else"~>statement) ^^ { case c~t~f => IfElse(c,t,f) }
   def loop = ("while"~>"("~>expression<~")")~statement ^^ { case c~b => While(c,b) }
@@ -105,7 +111,7 @@ object Parser extends StandardTokenParsers {
   def statement:Parser[Statement] =
     lb | wc | ass | ifelse | loop | tcf | see | block |
     returnStmt | throww | fors | doLoop | sync | switch | default |
-    switchcase | break | continue | assert | cons | scons
+    switchcase | break | continue | assert | cons | scons | skip
 
   def statements:Parser[List[Statement]] = statement*
 

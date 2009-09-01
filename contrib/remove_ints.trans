@@ -1,0 +1,6 @@
+REPLACE
+    int x = e;
+WITH
+    ;
+WHERE
+    True

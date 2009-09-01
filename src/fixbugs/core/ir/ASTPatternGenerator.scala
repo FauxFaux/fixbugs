@@ -14,9 +14,9 @@ import scala.collection.mutable.{Map => MMap}
  * Generates Eclipse AST for replacement, from a fixbugs Pattern and a Context
  * 
  */
-class ASTPatternGenerator(ast:AST,rewrite:ASTRewrite, context:Map[String,ASTNode]) {
+class ASTPatternGenerator(ast:AST,rewrite:ASTRewrite, context:Map[String,ASTNode],init:Boolean) {
   
-  val con = MMap() ++ context.map({case (k,v) => (k,(v,false))})
+  val con = MMap() ++ context.map({case (k,v) => (k,(v,init))})
 
   def get[X](name:String):X = {
       val (x,used) = con(name)
@@ -33,6 +33,7 @@ class ASTPatternGenerator(ast:AST,rewrite:ASTRewrite, context:Map[String,ASTNode
    */
   def generate(stmt:Stmt):IRStmt = stmt match {
     case Wildcard() => throw new Exception("Internal Error, cannot generate anything for a wildcard")
+    case Skip() => ast.newEmptyStatement
     case Assignment(typee,what,init) => {
         val assign = ast.newVariableDeclarationFragment
         assign.setInitializer(generate(init))

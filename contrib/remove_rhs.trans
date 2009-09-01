@@ -1,6 +1,6 @@
 REPLACE
-    t x = l + r;
+    ::t x = l + r;
 WITH
-    t x = l;
+    ::t x = l;
 WHERE
-    true
+    True

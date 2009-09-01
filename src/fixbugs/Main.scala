@@ -19,32 +19,35 @@ object Main {
     def main(args:Array[String]) = {
         // argument parsing
         if(args.length != 3) {
-            println("should be called with two arguments:")
-            println("java {this.getClass.getName} Classname.java Classname.class")
+            println("should be called with three arguments:")
+            println("java {this.getClass.getName} Classname.java Classname.class spec_file.trans")
             System.exit(-1)
         }
         val (src::bytecode::spec::Nil) = List[String]() ++ args
+        //printf("src = %s, bc = %s, spec = %s\n",src,bytecode,spec)
 
         val parser = ASTParser.newParser(AST.JLS3)
         val srcContents = readFile(src)
         parser.setSource(srcContents.toCharArray)
         val cu = parser.createAST(null).asInstanceOf[CompilationUnit]
         val ast =  cu.getAST
+        
+        //println("parsed source")
 
-        replace.apply(new lexical.Scanner(readFile(spec))) match {
+        val specSrc = readFile(spec)
+        replace.apply(new lexical.Scanner(specSrc)) match {
             case Success(ord, _) => {
                 val Replace(from,to,cond) = ord
+                //printf("from = %s, to = %s\n",from,to)
                 (new ASTPatternMatcher)
                     // pattern match the source
-                    .unifyAll(srcContents,from)
-                    // remove failing cases
-                    .filter(_.status)
+                    .unifyAll(cu,from)
                     // generate replacement programs
                     .map(con => rewrite(ast,to,con,srcContents))
                     .foreach(println(_))
             }
-            case Failure(msg, _) => println(srcContents,msg)
-            case Error(msg, _) => println(srcContents,msg)
+            case Failure(msg, _) => println("fail ",specSrc,msg)
+            case Error(msg, _) => println("error ",specSrc,msg)
         }
         ()
     }
@@ -55,8 +58,10 @@ object Main {
     def rewrite(ast:AST,to:Stmt,context:Context,srcContents:String) = {
       val from  = context("_from")
       val rewriter = ASTRewrite.create(ast)
-      val gen = new ASTPatternGenerator(ast,rewriter,Map() ++context.values)
+      val gen = new ASTPatternGenerator(ast,rewriter,Map() ++context.values,true)
       val doc = new Document(srcContents)
+      //println(from.getAST == ast)
+      //println(gen.generate(to).getAST == ast)
       rewriter.replace(from,gen.generate(to),null)
       val edit = rewriter.rewriteAST(doc,null)
       edit.apply(doc)

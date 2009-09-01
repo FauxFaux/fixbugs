@@ -38,7 +38,7 @@ class GeneratorTest extends Spec with ShouldMatchers {
     "x" -> ast.newName("x")
   )
 
-  val gen = new ASTPatternGenerator(ast,rewriter,context)
+  val gen = new ASTPatternGenerator(ast,rewriter,context,false)
 
   def replace(withNode:ASTNode) = {
     val doc = new Document(prog)

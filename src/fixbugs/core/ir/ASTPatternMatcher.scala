@@ -35,8 +35,9 @@ class ASTPatternMatcher {
   implicit def javaItToScalaIt[X](it:java.util.Iterator[X]) = new Wrapper[X](it)
   //implicit def javaItToScalaList[X](it:java.util.Iterator[X]):List[X] = List() ++ it
   implicit def compress[X](ar:Array[X]):Iterator[X] = ar.elements
-  
-  def unifyAll(src:String,pattern:Stmt):Iterator[Context] = unifyAll(parse(src),pattern)
+ 
+  // should only be called in testing
+  protected def unifyAll(src:String,pattern:Stmt):Iterator[Context] = unifyAll(parse(src),pattern)
   
   /**
    * Accumulate all contexts for a compilation unit
@@ -104,7 +105,7 @@ class ASTPatternMatcher {
      
       case (stmt,Label(lbl,statement)) => unifyStmt(stmt,statement) & one(lbl,stmt)
       case (stmt,Wildcard()) => c(true)
-      
+      case (stmt:EmptyStatement,Skip()) => c(true)
       // fuzzy matching
       // wildcard matches many statements
       // TODO: ignore non-matching prefix/suffix
@@ -121,9 +122,11 @@ class ASTPatternMatcher {
       
       case (stmt:ExpressionStatement,SideEffectExpr(expr)) => unifyExpr(stmt.getExpression,expr)
       case (stmt:VariableDeclarationStatement,Assign(typee,name,to)) => {
+        //println(stmt)
         // TODO: multiple declarations
         val frag = stmt.fragments.get(0).asInstanceOf[VariableDeclarationFragment]
-        guard(checkType(stmt.getType,typee),() => unifyExpr(frag.getInitializer,to) & one(name,frag.getName))
+        //println(checkType(stmt.getType,typee))
+        checkType(stmt.getType,typee) && (() => unifyExpr(frag.getInitializer,to) & one(name,frag.getName))
       }
       case (stmt:IfStatement,IfElse(cond,tb,fb)) =>
         unifyExpr(stmt.getExpression,cond) & unifyStmt(stmt.getThenStatement(),tb) & unifyStmt(stmt.getElseStatement(),fb)
@@ -144,11 +147,10 @@ class ASTPatternMatcher {
         unifyExprs(stmt.updaters,up) & unifyStmt(stmt.getBody,body)
       case (stmt:EnhancedForStatement,ForEach(typee,id,expr,body)) => {
         val param = stmt.getParameter
-        guard(checkType(param.getType,typee),() =>
-          one(id,param.getName) &
-          unifyExpr(stmt.getExpression,expr) &
-          unifyStmt(stmt.getBody,body)
-        )
+        checkType(param.getType,typee) & 
+        one(id,param.getName) &
+        unifyExpr(stmt.getExpression,expr) &
+        unifyStmt(stmt.getBody,body)
       }
       case (stmt:SynchronizedStatement, Synchronized(body,lock)) =>
       	unifyExpr(stmt.getExpression,lock) && (() => unifyStmt(stmt.getBody,body))
@@ -217,11 +219,11 @@ class ASTPatternMatcher {
         guard(op == expr.getOperator,()=>unifyExpr(expr.getOperand,inner))
       case (expr:ParenthesizedExpression,pattern) => unifyExpr(expr.getExpression,pattern)
       case (expr:CastExpression,Cast(inner,typee)) =>
-        guard(checkType(expr.getType,typee),()=>unifyExpr(expr.getExpression,inner))
+        checkType(expr.getType,typee) && (()=>unifyExpr(expr.getExpression,inner))
       case (expr:ClassInstanceCreation,New(typee,args)) =>
-        guard(checkType(expr.getType,typee),()=>unifyExprs(expr.arguments,args))
+        checkType(expr.getType,typee) && (()=>unifyExprs(expr.arguments,args))
       case (expr:InstanceofExpression,InstanceOf(typee,inner)) =>
-        guard(checkType(expr.getRightOperand,typee),()=>unifyExpr(expr.getLeftOperand,inner))
+        checkType(expr.getRightOperand,typee) && (()=>unifyExpr(expr.getLeftOperand,inner))
       case (expr:ArrayInitializer,ArrayInit(exprs)) => unifyExprs(expr.expressions,exprs)
         
       case _ => c(false)
@@ -237,12 +239,13 @@ class ASTPatternMatcher {
    * TODO: Parameterized Types, Wildcard Types, Qualified Type
    * @see http://help.eclipse.org/galileo/index.jsp?topic=/org.eclipse.jdt.doc.isv/reference/api/org/eclipse/jdt/core/dom/CastExpression.html
    */
-  def checkType(node:Type,pattern:TypePattern):Boolean = {
+  def checkType(node:Type,pattern:TypePattern):Context = {
     (node,pattern) match {
-      case (t:PrimitiveType,PrimType(name)) => name == t.getPrimitiveTypeCode.toString
-      case (t:SimpleType,SimpType(name)) => name == t.getName
-      case (t:ArrayType,ArraType(typee)) => checkType(t.getComponentType,typee) 
-      case _ => false
+      case (t:PrimitiveType,PrimType(name)) => c(name == t.getPrimitiveTypeCode.toString)
+      case (t:SimpleType,SimpType(name)) => c(name == t.getName)
+      case (t:ArrayType,ArraType(typee)) => checkType(t.getComponentType,typee)
+      case (t,TypeMetavar(name)) => one(name,t)
+      case _ => c(false)
     }
   }
   
