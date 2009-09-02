@@ -39,9 +39,8 @@ object Main {
             case Success(ord, _) => {
                 val Replace(from,to,cond) = ord
                 //printf("from = %s, to = %s\n",from,to)
-                (new ASTPatternMatcher)
-                    // pattern match the source
-                    .unifyAll(cu,from)
+                // pattern match the source
+                check((new ASTPatternMatcher).unifyAll(cu,from))
                     // generate replacement programs
                     .map(con => rewrite(ast,to,con,srcContents))
                     .foreach(println(_))
@@ -50,6 +49,10 @@ object Main {
             case Error(msg, _) => println("error ",specSrc,msg)
         }
         ()
+    }
+
+    def check(context:Iterator[Context]) = {
+        context
     }
 
     /**
