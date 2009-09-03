@@ -60,24 +60,25 @@ object Main {
      */
     def check(contexts:Iterator[Context],className:String,cu:CompilationUnit,ast:AST, phi:SideCondition) = {
         // apply ast -> line number lookup and generate inverse
-        val allValues = new HSet[(Map[String,Int],MMap[String,ASTNode])]()
+        val allValues = new HSet[(Map[String,Int],Context)]()
         contexts.foreach(con => {
             val valuation = new HMap[String,Int]()
             for((k,v) <- con.values) {
                 if(v.isInstanceOf[Statement])
                     valuation += (k -> cu.getLineNumber(v.getStartPosition))
             }
-            allValues += ((Map[String,Int]() ++ valuation,con.values))
+            allValues += ((Map[String,Int]() ++ valuation,con))
         })
 
         val domain = new SetClosedDomain(Set[Map[String,Int]]() ++ allValues.map({case (nums,nodes) => nums}))
 
-        // do model check, we don't care about methods atm
-        val results = ModelCheck.check(className,phi,domain).values
+        // do model check, we don't care about methods atm, and converts back to collections from ClosedEnvironment[Int]
+        val results = ModelCheck.check(className,phi,domain).values.flatMap(_.allValues.elements)
 
-        // convert back from line numbers
-       
-        contexts
+        // convert back from line numbers to contexts
+        allValues
+            .filter({case (nums,nodes) => results contains nums})
+            .map({case (nums,nodes) => nodes})
     }
 
     /**
