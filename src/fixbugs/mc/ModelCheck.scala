@@ -1,6 +1,6 @@
 package fixbugs.mc
 
-import fixbugs.core.ir.NodeCondition
+import fixbugs.core.ir.SideCondition
 import fixbugs.mc.sets._
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.tree.ClassNode;
@@ -14,9 +14,9 @@ import scala.collection.mutable.{HashMap => MMap,Map}
 object ModelCheck {
 
   // TODO: bytecode domain restriction
-  def check(className:String,phi:NodeCondition,domain:ClosedDomain[Int]):Map[String,ClosedEnvironment[Int]] = {
+  def check(className:String,phi:SideCondition,domain:ClosedDomain[Int]):Map[String,ClosedEnvironment[Int]] = {
     // refine IR
-    val psi = Refiner.refine(phi)
+    val psi = Refiner.refineSide(phi)
     
     // extract line numbers
     val cn = new ClassNode();

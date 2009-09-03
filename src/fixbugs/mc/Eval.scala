@@ -7,7 +7,7 @@ import scala.collection.mutable.{Map => MMap}
 case class Node(lineNumber:Int){}
 
 trait Evaluator {
-  def eval(nc:NodeCondition):ClosedEnvironment[Int]
+  def eval(nc:SideCondition):ClosedEnvironment[Int]
 }
 
 
@@ -21,7 +21,16 @@ class Eval(nodes:Set[Int],domain:ClosedDomain[Int],succ:MMap[Int,Set[Int]],pred:
 	
 	// exit points are nodes with no successors
 	val exit = nodes -- imSucc.keys
-  
+ 
+    def eval(sc:SideCondition):ClosedEnvironment[Int] = sc match {
+        case SFalse() => domain.none()
+        case STrue() => domain.all()
+        case SAnd(l,r) => eval(l) intersect eval(r)
+        case SOr(l,r) => eval(l) union eval(r)
+        case SNot(phi) => eval(phi).negate()
+        case Satisfies(name,phi) => eval(phi).equalByKey(name,"current")
+    }
+
     def eval(nc:NodeCondition):ClosedEnvironment[Int] = {
 		nc match {
             case False() => domain.none()

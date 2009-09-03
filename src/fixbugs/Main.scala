@@ -5,8 +5,11 @@ import scala.io.Source
 import org.eclipse.jdt.core.dom._
 import org.eclipse.jdt.core.dom.rewrite._
 import org.eclipse.jface.text.Document
-import fixbugs.core.ir.{Statement => Stmt,ASTPatternMatcher,ASTPatternGenerator,Context,Replace}
+import fixbugs.core.ir.{Statement => Stmt,ASTPatternMatcher,ASTPatternGenerator,Context,Replace,SideCondition}
 import fixbugs.core.ir.Parser._
+import fixbugs.mc.ModelCheck
+import fixbugs.mc.sets.SetClosedDomain
+import scala.collection.mutable.{HashMap => HMap,HashSet => HSet,Map => MMap}
 
 /**
  * Main entry point to the fixbugs system
@@ -37,10 +40,10 @@ object Main {
         val specSrc = readFile(spec)
         replace.apply(new lexical.Scanner(specSrc)) match {
             case Success(ord, _) => {
-                val Replace(from,to,cond) = ord
+                val Replace(from,to,phi) = ord
                 //printf("from = %s, to = %s\n",from,to)
                 // pattern match the source
-                check((new ASTPatternMatcher).unifyAll(cu,from))
+                check((new ASTPatternMatcher).unifyAll(cu,from),bytecode,cu,ast,phi)
                     // generate replacement programs
                     .map(con => rewrite(ast,to,con,srcContents))
                     .foreach(println(_))
@@ -51,8 +54,30 @@ object Main {
         ()
     }
 
-    def check(context:Iterator[Context]) = {
-        context
+
+    /**
+     * NB Assumes: 1 line/statement - consider how to fix
+     */
+    def check(contexts:Iterator[Context],className:String,cu:CompilationUnit,ast:AST, phi:SideCondition) = {
+        // apply ast -> line number lookup and generate inverse
+        val allValues = new HSet[(Map[String,Int],MMap[String,ASTNode])]()
+        contexts.foreach(con => {
+            val valuation = new HMap[String,Int]()
+            for((k,v) <- con.values) {
+                if(v.isInstanceOf[Statement])
+                    valuation += (k -> cu.getLineNumber(v.getStartPosition))
+            }
+            allValues += ((Map[String,Int]() ++ valuation,con.values))
+        })
+
+        val domain = new SetClosedDomain(Set[Map[String,Int]]() ++ allValues.map({case (nums,nodes) => nums}))
+
+        // do model check, we don't care about methods atm
+        val results = ModelCheck.check(className,phi,domain).values
+
+        // convert back from line numbers
+       
+        contexts
     }
 
     /**
