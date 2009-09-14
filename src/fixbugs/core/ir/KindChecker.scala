@@ -38,7 +38,7 @@ object KindChecker {
 
         val unbound = (Set() ++ toEnv.keys) -- (Set() ++ fromEnv.keys)
         if (! unbound.isEmpty)
-            throw new KindCheckingException("The following variables are unbound (ie used in replacement, but not creation"+unbound)
+            throw new KindCheckingException("The following variables are unbound (ie used in replacement, but not creation: "+unbound)
         ()
     }
 
@@ -93,6 +93,6 @@ case class TypeKind() extends Kind
 case class ExpressionKind() extends Kind
 case class StatementKind() extends Kind
 
-class KindCheckingException(msg:String) extends Exception(msg) {
+case class KindCheckingException(msg:String) extends Exception(msg) {
 
 }
