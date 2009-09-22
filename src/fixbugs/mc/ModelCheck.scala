@@ -7,6 +7,7 @@ import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.MethodNode;
 import org.objectweb.asm.tree.AbstractInsnNode;
 import scala.collection.mutable.{HashMap => MMap,Map}
+import java.io.FileInputStream
 
 /**
  * Main entry point to the bytecode analysis component
@@ -19,13 +20,17 @@ object ModelCheck {
     val psi = Refiner.refineSide(phi)
     
     // extract line numbers
-    val cn = new ClassNode();
-	val cr = new ClassReader(className);
+    println(className);
+    val file = new FileInputStream(className)
+    val cn = new ClassNode()
+	val cr = new ClassReader(file)
 	cr.accept(cn, 0);
     
     // foreach method: (messy conversion from java collections)
     var results = new MMap[String,ClosedEnvironment[Int]]
-    List(cn.methods).asInstanceOf[List[MethodNode]].foreach((mn) => {
+    //List(cn.methods).asInstanceOf[List[MethodNode]].foreach((mn) => {
+    for(val i <- 0 to cn.methods.size()) {
+        val mn = cn.methods.get(i).asInstanceOf[MethodNode]
         // extract cfg using asm
 	    val (succs,preds) = cfg(ControlFlowGraphAnalysis.getControlFlowGraph("fixbugs",mn))
 	    val lines = LineNumberExtractor.getLineNumberLookup(mn)
@@ -34,7 +39,7 @@ object ModelCheck {
 	    // model check the method, and add the results
 	    val eval:Evaluator = new Eval(nodes,domain,minimise(lines,succs),minimise(lines,preds))
 	    results += (mn.name -> eval.eval(psi))
-    })
+    }
     results
   }
   
@@ -45,7 +50,11 @@ object ModelCheck {
     val succs = new MMap[Int,Set[Int]]
     val preds = new MMap[Int,Set[Int]]
 
-    for (i <- 0 to nodes.length) {
+    for (i <- 0 to nodes.length-1) {
+        println(nodes(i).successors)
+    }
+
+    for (i <- 0 to nodes.length-1) {
       succs += (i -> Set(nodes(i).successors).map(nodes.indexOf(_)))
       preds += (i -> Set(nodes(i).predecessors).map(nodes.indexOf(_)))
     }
@@ -53,13 +62,13 @@ object ModelCheck {
     (succs,preds)
   }
   
-  
   /**
    * Simple Minimise Silhouettes algorithm
    * Simply substitute through the numbers and union all the appropriate sets
    */
   // TODO: remove cycles
   def minimise(lines:Array[Int],cfg:MMap[Int,Set[Int]]) = {
+    println(cfg)
     cfg.transform((k,v) => v.map(x => lines(x)))
     val acc = new MMap[Int,Set[Int]]
     cfg.foreach(x => {

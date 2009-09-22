@@ -73,10 +73,14 @@
     </target>
     <target depends="clean" name="cleanall"/>
     <target name="build" depends="init">
+        <javac
+            srcdir="src"
+            destdir="bin"
+            classpathref="FixbugsPlugin.classpath" />
         <scalac srcdir="src"
             destdir="bin"
-            classpathref="FixbugsPlugin.classpath"
-            force="changed">
+            classpathref="FixbugsPlugin.classpath">
+            <!--force="changed">-->
         <!--<include name="compile/**/*.scala" />
         <exclude name="forget/**/*.scala" />-->
         </scalac>
@@ -94,7 +98,7 @@
         <java classname="fixbugs.Main" classpathref="FixbugsPlugin.classpath">
             <arg path="${a}"/>
             <arg path="${b}"/>
-            <arg path="${c}"/>
+            <arg path="${trans}"/>
         </java>
     </target>
 </project>

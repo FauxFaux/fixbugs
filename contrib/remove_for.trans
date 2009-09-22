@@ -1,0 +1,6 @@
+REPLACE
+    for (x;y;i++) ....
+WITH
+    ;
+WHERE
+    True

@@ -43,7 +43,8 @@ object Main {
                 val Replace(from,to,phi) = ord
                 //printf("from = %s, to = %s\n",from,to)
                 // pattern match the source
-                check((new ASTPatternMatcher).unifyAll(cu,from),bytecode,cu,ast,phi)
+                //check((new ASTPatternMatcher).unifyAll(cu,from),bytecode,cu,ast,phi)
+                (new ASTPatternMatcher).unifyAll(cu,from)
                     // generate replacement programs
                     .map(con => rewrite(ast,to,con,srcContents))
                     .foreach(println(_))

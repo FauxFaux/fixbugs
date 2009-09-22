@@ -1,0 +1,6 @@
+REPLACE
+    tt: ....
+WITH
+    if (true) tt; else ;
+WHERE
+    True

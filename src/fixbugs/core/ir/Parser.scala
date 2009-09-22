@@ -56,8 +56,8 @@ object Parser extends StandardTokenParsers {
     operators.tail.map(p).foldLeft(p(operators.head))(_|_)
   }
 
-  // TODO: arguments for methods
-  def inner = ident ^^ {Metavar(_)} 
+  // TODO: arguments for methods, literals
+  def inner = ident ^^ {Metavar(_)} //| '"' '"'
 
   def unary = inner ~ opt(postFix) ^^ (x => x match {
       case e~None => e
@@ -88,7 +88,7 @@ object Parser extends StandardTokenParsers {
   def returnStmt = "return" ~> expression <~ ";" ^^ {Return(_)}
   def throww = "throw" ~> expression <~ ":" ^^ {Throw(_)}
   def fors = "for" ~> "(" ~> (forLoop ) //| foreach)
-  def forLoop = expression ~ (";" ~> expression) ~ (";" ~> expression) ~ statement ^^ {
+  def forLoop = expression ~ (";" ~> expression) ~ (";" ~> expression <~ ")" ) ~ statement ^^ {
     case init~cond~updaters~stmt => For(List(init),cond,List(updaters),stmt)
   }
   def doLoop = ("do" ~> statement) ~ ("while" ~> "(" ~> expression <~ ")" <~ ";") ^^ {
