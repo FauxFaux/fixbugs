@@ -20,7 +20,7 @@ object ModelCheck {
     val psi = Refiner.refineSide(phi)
     
     // extract line numbers
-    println(className);
+    //println(className);
     val file = new FileInputStream(className)
     val cn = new ClassNode()
 	val cr = new ClassReader(file)
@@ -29,7 +29,7 @@ object ModelCheck {
     // foreach method: (messy conversion from java collections)
     var results = new MMap[String,ClosedEnvironment[Int]]
     //List(cn.methods).asInstanceOf[List[MethodNode]].foreach((mn) => {
-    for(val i <- 0 to cn.methods.size()) {
+    for(val i <- 0 to cn.methods.size()-1) {
         val mn = cn.methods.get(i).asInstanceOf[MethodNode]
         // extract cfg using asm
 	    val (succs,preds) = cfg(ControlFlowGraphAnalysis.getControlFlowGraph("fixbugs",mn))
@@ -42,7 +42,15 @@ object ModelCheck {
     }
     results
   }
-  
+ 
+  def convert[X](from:java.util.Set[X]):Set[X] = {
+    var s = Set[X]()
+    val it = from.iterator
+    while(it.hasNext)
+        s = s + it.next
+    s
+  }
+
   /**
    * generate lookup sets for CFG
    */
@@ -50,13 +58,17 @@ object ModelCheck {
     val succs = new MMap[Int,Set[Int]]
     val preds = new MMap[Int,Set[Int]]
 
-    for (i <- 0 to nodes.length-1) {
+    /*for (i <- 0 to nodes.length-1) {
         println(nodes(i).successors)
-    }
+        val it = nodes(i).successors.iterator
+        while(it.hasNext()) {
+            println(nodes.indexOf(it.next()))
+        }
+    }*/
 
     for (i <- 0 to nodes.length-1) {
-      succs += (i -> Set(nodes(i).successors).map(nodes.indexOf(_)))
-      preds += (i -> Set(nodes(i).predecessors).map(nodes.indexOf(_)))
+      succs += (i -> convert(nodes(i).successors).map(nodes.indexOf(_)))
+      preds += (i -> convert(nodes(i).predecessors).map(nodes.indexOf(_)))
     }
     
     (succs,preds)
@@ -68,7 +80,7 @@ object ModelCheck {
    */
   // TODO: remove cycles
   def minimise(lines:Array[Int],cfg:MMap[Int,Set[Int]]) = {
-    println(cfg)
+    //println(cfg)
     cfg.transform((k,v) => v.map(x => lines(x)))
     val acc = new MMap[Int,Set[Int]]
     cfg.foreach(x => {
