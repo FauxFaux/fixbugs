@@ -31,9 +31,16 @@ class ASTPatternGenerator(ast:AST,rewrite:ASTRewrite, context:Map[String,ASTNode
   /**
    * Generates Statements
    */
-  def generate(stmt:Stmt):IRStmt = stmt match {
+  def generate(stmt:Stmt):IRStmt = { println(stmt); stmt match {
     case Wildcard() => throw new Exception("Internal Error, cannot generate anything for a wildcard")
     case Skip() => ast.newEmptyStatement
+    case Label(_,_) => throw new Exception("Label Patterns aren't reconstructable")
+    case StatementReference(metavar) => get(metavar)
+    /*{
+        val x = get(metavar)
+        println(x)
+        x 
+    }*/
     case Assignment(typee,what,init) => {
         val assign = ast.newVariableDeclarationFragment
         assign.setInitializer(generate(init))
@@ -120,7 +127,6 @@ class ASTPatternGenerator(ast:AST,rewrite:ASTRewrite, context:Map[String,ASTNode
         default.setExpression(null)
         default
     }
-    case Label(_,_) => throw new Exception("Label Patterns aren't reconstructable")
     case TryCatchFinally(tryB,catchB,finallyB) => {
         val stmt = ast.newTryStatement
         stmt.setBody(generateBlock(tryB))
@@ -148,7 +154,7 @@ class ASTPatternGenerator(ast:AST,rewrite:ASTRewrite, context:Map[String,ASTNode
         addExprs(stmt.updaters,updaters)
         stmt
     }
-  }
+  }}
 
   def generateBlock(sblock:SBlock):Block = {
     val block = ast.newBlock

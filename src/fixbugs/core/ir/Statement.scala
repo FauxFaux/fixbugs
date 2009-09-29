@@ -10,6 +10,7 @@ case class Label(lbl:String,stmt:Statement) extends Statement
 /** Matches one of more statements */
 case class Wildcard() extends Statement
 case class Skip() extends Statement
+case class StatementReference(lbl:String) extends Statement
 // modifiers, match fragments
 case class Assignment(typee:TypePattern,what:String,to:Expression) extends Statement
 case class IfElse(cond:Expression,trueBlock:Statement,falseBlock:Statement) extends Statement

@@ -28,14 +28,14 @@ class Eval(nodes:Set[Int],domain:ClosedDomain[Int],succ:MMap[Int,Set[Int]],pred:
         case SAnd(l,r) => eval(l) intersect eval(r)
         case SOr(l,r) => eval(l) union eval(r)
         case SNot(phi) => eval(phi).negate()
-        case Satisfies(name,phi) => eval(phi).equalByKey(name,"current")
+        case Satisfies(name,phi) => eval(phi).equalByKey(name,"_current")
     }
 
     def eval(nc:NodeCondition):ClosedEnvironment[Int] = {
 		nc match {
             case False() => domain.none()
             case True() => domain.all()
-            case NodePred(key) => domain.all().equalByKey(key,"current")
+            case NodePred(key) => domain.all().equalByKey(key,"_current")
             case Not(phi) => eval(phi).negate()
             case Or(l,r) => eval(l) union eval(r)
             case And(l,r) => eval(l) intersect eval(r)
@@ -43,7 +43,7 @@ class Eval(nodes:Set[Int],domain:ClosedDomain[Int],succ:MMap[Int,Set[Int]],pred:
             // Temporal cases only EX,EG,EU due to refinement
             
             // move current to predecessor
-            case Exists(Next(phi)) => eval(phi).mapKey("current",imPred)
+            case Exists(Next(phi)) => eval(phi).mapKey("_current",imPred)
             
             case Exists(Until(phi,psi)) => loop(eval(psi),eval(phi))
             
@@ -52,7 +52,7 @@ class Eval(nodes:Set[Int],domain:ClosedDomain[Int],succ:MMap[Int,Set[Int]],pred:
               val phis = eval(phi)
               // initial: phis that are exit points 
               //println("GLOBAL"+phi)
-              loop(phis.restrictKeyTo("current",exit),phis)
+              loop(phis.restrictKeyTo("_current",exit),phis)
             }
             
             case x => throw new Exception("Unknown temporal IR element: "+x)            
@@ -73,7 +73,7 @@ class Eval(nodes:Set[Int],domain:ClosedDomain[Int],succ:MMap[Int,Set[Int]],pred:
         //println(values.allValues.map(x => x("current")))
         
         // iteratively add predecessors that are in iter
-        values = values union (values.mapKey("current",imPred) intersect iter)
+        values = values union (values.mapKey("_current",imPred) intersect iter)
       } while(prev != values)
       //println("Loop returning: "+values.allValues.map(x => x("current")))
       values

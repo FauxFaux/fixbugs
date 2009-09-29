@@ -1,0 +1,12 @@
+REPLACE
+    {
+        n: ::t x = l + r;
+        m: ....
+    }
+WITH
+    {
+        `n`;
+        ;
+    }
+WHERE
+    True

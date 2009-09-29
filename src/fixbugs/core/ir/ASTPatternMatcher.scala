@@ -46,9 +46,11 @@ class ASTPatternMatcher {
   def unifyAll(cu:CompilationUnit,pattern:Stmt):Iterator[Context] = {
     cu.types.iterator.flatMap(
       _.asInstanceOf[TypeDeclaration].getMethods.flatMap({m =>
-        m.getBody.statements.iterator.map(
-          s => unifyStmt(s.asInstanceOf[IRStmt],pattern)
-        ).toList.filter(_.status)
+        val inner = m.getBody.statements
+        pattern match {
+            case SBlock(patterns) => List(blockIt(inner,patterns))
+            case _ => inner.iterator.map(s => unifyStmt(s.asInstanceOf[IRStmt],pattern)).toList.filter(_.status)
+        }
       })
     )
   }
@@ -68,7 +70,8 @@ class ASTPatternMatcher {
 	      unifyStmt(s,p) && (()=> block(ss,ps)) || (() => block(ss,Wildcard()::p::ps))
 	    case (s::ss,p::ps) => unifyStmt(s,p) && (()=>block(ss,ps))
 	    case (Nil,Wildcard() :: Nil) => c(true)
-	    case (Nil,_) => c(false)
+	    case _ => c(false)
+        //case _ => println(stmts,pattern); throw new Exception("Debug Error")
 	  }
 	}
   
@@ -100,7 +103,7 @@ class ASTPatternMatcher {
     EmptyStatement
    */
   def unifyStmt(node:IRStmt,pattern:Stmt):Context = {
-    //println(node.getClass)
+    println(node.getClass,pattern)
     val con = (node,pattern) match {
      
       case (stmt,Label(lbl,statement)) => unifyStmt(stmt,statement) & one(lbl,stmt)

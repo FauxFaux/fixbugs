@@ -35,7 +35,7 @@ object Parser extends StandardTokenParsers {
   
   val postfix = List(PostOp.DECREMENT, PostOp.INCREMENT)
 
-  val other = List(";",":","(",")","....","=","{","}","::","\"","'") ++
+  val other = List(";",":","(",")","....","=","{","}","::","\"","'","`") ++
     // side condition
     List("^","|","¬","[","]","@")
 
@@ -108,10 +108,12 @@ object Parser extends StandardTokenParsers {
   def cons = "this" ~> "(" ~> expression <~ ")" ^^ {e => Constructor(List(e))}
   def scons = "super" ~> "(" ~> expression <~ ")" ^^ {e => SuperConstructor(List(e))}
 
+  def recons = "`" ~> ident <~ "`" ^^ { StatementReference(_) }
+
   def statement:Parser[Statement] =
     lb | wc | ass | ifelse | loop | tcf | see | block |
     returnStmt | throww | fors | doLoop | sync | switch | default |
-    switchcase | break | continue | assert | cons | scons | skip
+    switchcase | break | continue | assert | cons | scons | skip | recons
 
   def statements:Parser[List[Statement]] = statement*
 
@@ -125,7 +127,7 @@ object Parser extends StandardTokenParsers {
 
   def _true = "true" ^^ (_=>True())
   def _false = "false" ^^ (_=>False())
-  def _inner = _true | _false | "(" ~> node <~")"
+  def _inner = _true | _false | "(" ~> node <~")" | ident ^^ {NodePred(_)}
   def _unary = _inner |
     ("¬" ~ _inner ^^ {case _~n => Not(n)}) |
     "is"~>ident ^^ (NodePred(_)) |
@@ -153,10 +155,10 @@ object Parser extends StandardTokenParsers {
   
   // Transformations
   def replace = ("REPLACE"~> statement)~ ("WITH" ~> statement) ~ ("WHERE" ~> side) ^^ {
-    case from~to~cond => Replace(from,to,cond)
+    case from~to~cond => println(to); Replace(from,to,cond)
   }
   def then = (trans <~ "THEN") ~ trans ^^ {case l~r => Then(l,r)}
   
-  def trans:Parser[Transformation] = replace //| then
+  def trans:Parser[Transformation] = replace ^^ {x => println(x);x}//| then
 }
 

@@ -8,13 +8,13 @@ import org.objectweb.asm.tree.MethodNode;
 import org.objectweb.asm.tree.AbstractInsnNode;
 import scala.collection.mutable.{HashMap => MMap,Map}
 import java.io.FileInputStream
+import fixbugs.util.MapUtil.crossWith
 
 /**
  * Main entry point to the bytecode analysis component
  */
 object ModelCheck {
 
-  // TODO: bytecode domain restriction
   def check(className:String,phi:SideCondition,domain:ClosedDomain[Int]):Map[String,ClosedEnvironment[Int]] = {
     // refine IR
     val psi = Refiner.refineSide(phi)
@@ -35,9 +35,12 @@ object ModelCheck {
 	    val (succs,preds) = cfg(ControlFlowGraphAnalysis.getControlFlowGraph("fixbugs",mn))
 	    val lines = LineNumberExtractor.getLineNumberLookup(mn)
 	    val nodes = Set() ++ lines
+
+        // cross product the domain with the current value
+        val completeDomain = new SetClosedDomain[Int](crossWith(domain.allValues,"_current",nodes))
 	    
 	    // model check the method, and add the results
-	    val eval:Evaluator = new Eval(nodes,domain,minimise(lines,succs),minimise(lines,preds))
+	    val eval:Evaluator = new Eval(nodes,completeDomain,minimise(lines,succs),minimise(lines,preds))
 	    results += (mn.name -> eval.eval(psi))
     }
     results

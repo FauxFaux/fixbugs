@@ -13,7 +13,9 @@ object MapUtil {
     acc
   })
   
-  def crossWith[K,V](env:Set[Map[K,V]],key:K, values:Set[V]) =
+  def crossWith[K,V](env:Set[Map[K,V]],key:K, values:Set[V]):Set[Map[K,V]] =
     env.flatMap(x => values.map(v => x + (key -> v)))
+  
+//  def productWith[K,V](env:Map[K,V],key:K):Map[K,V] = env + env.values.map(v => 
     
 }

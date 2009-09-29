@@ -20,12 +20,12 @@ class EvalSpec extends Spec with ShouldMatchers {
     	+ (2->Set(3,4))
     	+ (3->Set(0)))
     (nodes,
-    new SetClosedDomain[Int](crossWith(Set(Map("X"->0,"Y"->2)),"current",nodes)),
+    new SetClosedDomain[Int](crossWith(Set(Map("X"->0,"Y"->2)),"_current",nodes)),
     succ,
     reverse(succ)
   )}
   
-  def current[V](x:Iterable[Map[String,V]]) = x.map(v => v("current"))
+  def current[V](x:Iterable[Map[String,V]]) = x.map(v => v("_current"))
   
   describe("Evaluation") {
     val(nodes,dom,succ,pred) = createFixtures
@@ -52,13 +52,13 @@ class EvalSpec extends Spec with ShouldMatchers {
     it("Temporal Predicates") {
       val x = (env eval NodePred("X") allValues)
       x should have size (1)
-      x.toList(0) should (contain key ("current") and contain value (0))
+      x.toList(0) should (contain key ("_current") and contain value (0))
     }
     
 	it ("Next Operator") {
 	  val x = (env eval Exists(Next(NodePred("X"))) allValues)
       x should have size (1)
-      x.toList(0) should (contain key ("current") and contain value (3))
+      x.toList(0) should (contain key ("_current") and contain value (3))
 	}
 	
 	it ("Until and Global Operators") {
