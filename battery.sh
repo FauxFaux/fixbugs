@@ -2,5 +2,6 @@
 
 set -eu
 
-ant run -Da="progs/fixbugs/test/Simple.java" -Db="bin/fixbugs/test/Simple.class" -Dc="contrib/remove_rhs.trans"
-ant run -Da="progs/fixbugs/test/Simple.java" -Db="bin/fixbugs/test/Simple.class" -Dc="contrib/remove_ints.trans"
+ant run -Da="progs/fixbugs/test/Simple.java" -Db="bin/fixbugs/test/Simple.class" -Dc="contrib/remove_rhs.trans" 2>&1 | less
+
+#ant run -Da="progs/fixbugs/test/Simple.java" -Db="bin/fixbugs/test/Simple.class" -Dc="contrib/remove_ints.trans"

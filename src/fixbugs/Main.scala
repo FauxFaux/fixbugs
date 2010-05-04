@@ -41,7 +41,7 @@ object Main {
         replace.apply(new lexical.Scanner(specSrc)) match {
             case Success(ord, _) => {
                 val Replace(from,to,phi) = ord
-                //printf("from = %s, to = %s\n",from,to)
+                printf("from = %s, to = %s, phi = %s\n",from,to,phi)
                 // pattern match the source
                 check((new ASTPatternMatcher).unifyAll(cu,from),bytecode,cu,ast,phi)
                 //(new ASTPatternMatcher).unifyAll(cu,from)
@@ -60,13 +60,16 @@ object Main {
      * NB Assumes: 1 line/statement - consider how to fix
      */
     def check(contexts:Iterator[Context],className:String,cu:CompilationUnit,ast:AST, phi:SideCondition) = {
+        // printf("contexts = %s",contexts.toList)
         // apply ast -> line number lookup and generate inverse
         val allValues = new HSet[(Map[String,Int],Context)]()
         contexts.foreach(con => {
             val valuation = new HMap[String,Int]()
             for((k,v) <- con.values) {
-                if(v.isInstanceOf[Statement])
+                if(v.isInstanceOf[Statement]) {
+                    printf("v = %s, start = %s, line = %s\n ",v,v.getStartPosition, cu.getLineNumber(v.getStartPosition))
                     valuation += (k -> cu.getLineNumber(v.getStartPosition))
+                }
             }
             allValues += ((Map[String,Int]() ++ valuation,con))
         })
@@ -75,6 +78,12 @@ object Main {
 
         // do model check, we don't care about methods atm, and converts back to collections from ClosedEnvironment[Int]
         val results = ModelCheck.check(className,phi,domain).values.flatMap(_.allValues.elements)
+        
+        printf("domain = %s, results = %s, allValues = %s\n",domain,results.toList,allValues);
+
+        allValues
+            .filter({case (nums,nodes) => results contains nums})
+            .foreach({case (nums,nodes) => printf("nums = %s\nEND\n,nodes = %s\nEND\n\n",nums,nodes)})
 
         // convert back from line numbers to contexts
         allValues
@@ -95,7 +104,9 @@ object Main {
       rewriter.replace(from,gen.generate(to),null)
       val edit = rewriter.rewriteAST(doc,null)
       edit.apply(doc)
-      doc.get
+      val output = doc.get
+      println(output)
+      output
     }
 
 }

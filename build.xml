@@ -18,35 +18,61 @@
         <pathelement location="/home/mulletron/code/scala/scala/lib/scala-library.jar"/>
       </classpath>-->
     </taskdef>
-    <path id="Plug-in Dependencies.libraryclasspath">
-        <!--
-        <pathelement location="${ECLIPSE_HOME}/plugins/org.eclipse.swt.cocoa.macosx_3.5.0.v3550b.jar"/>
-        <pathelement location="${ECLIPSE_HOME}/plugins/javax.transaction_1.1.1.v200906161300.jar"/>
-        <pathelement location="${ECLIPSE_HOME}/plugins/org.eclipse.persistence.jpa.equinox.weaving_1.1.2.v20090612-r4475.jar"/>
+    <path id="eclipse.plugins">
+        <!--                                                   
+            <pathelement location="${ECLIPSE_HOME}/plugins/org.eclipse.swt.cocoa.macosx_3.5.0.v3550b.jar"/>
+            <pathelement location="${ECLIPSE_HOME}/plugins/javax.transaction_1.1.1.v200906161300.jar"/>
+            <pathelement location="${ECLIPSE_HOME}/plugins/org.eclipse.persistence.jpa.equinox.weaving_1.1.2.v20090612-r4475.jar"/>
         -->
-        <pathelement location="${ECLIPSE_HOME}/plugins/org.eclipse.ui_3.5.0.I20090604-2000.jar"/>
-        <pathelement location="${ECLIPSE_HOME}/plugins/org.eclipse.swt_3.5.0.v3550b.jar"/>
-        <pathelement location="${ECLIPSE_HOME}/plugins/org.eclipse.jface_3.5.0.I20090525-2000.jar"/>
-        <pathelement location="${ECLIPSE_HOME}/plugins/org.eclipse.core.commands_3.5.0.I20090525-2000.jar"/>
-        <pathelement location="${ECLIPSE_HOME}/plugins/org.eclipse.ui.workbench_3.5.0.I20090603-2000.jar"/>
-        <pathelement location="${ECLIPSE_HOME}/plugins/org.eclipse.core.runtime_3.5.0.v20090525.jar"/>
-        <pathelement location="${ECLIPSE_HOME}/plugins/org.eclipse.osgi_3.5.0.v20090520.jar"/>
-        <pathelement location="${ECLIPSE_HOME}/plugins/org.eclipse.equinox.common_3.5.0.v20090520-1800.jar"/>
-        <pathelement location="${ECLIPSE_HOME}/plugins/org.eclipse.core.jobs_3.4.100.v20090429-1800.jar"/>
-        <pathelement location="${ECLIPSE_HOME}/plugins/org.eclipse.core.runtime.compatibility.registry_3.2.200.v20090429-1800/runtime_registry_compatibility.jar"/>
-        <pathelement location="${ECLIPSE_HOME}/plugins/org.eclipse.equinox.registry_3.4.100.v20090520-1800.jar"/>
-        <pathelement location="${ECLIPSE_HOME}/plugins/org.eclipse.equinox.preferences_3.2.300.v20090520-1800.jar"/>
-        <pathelement location="${ECLIPSE_HOME}/plugins/org.eclipse.core.contenttype_3.4.0.v20090429-1800.jar"/>
-        <pathelement location="${ECLIPSE_HOME}/plugins/org.eclipse.equinox.app_1.2.0.v20090520-1800.jar"/>
-        <pathelement location="${ECLIPSE_HOME}/plugins/org.eclipse.core.resources_3.5.0.v20090512.jar"/>
-        <pathelement location="${ECLIPSE_HOME}/plugins/org.eclipse.jdt.core_3.5.0.v_963.jar"/>
-        <pathelement location="${ECLIPSE_HOME}/plugins/org.eclipse.jdt.compiler.apt_1.0.200.v20090528-1135.jar"/>
-        <pathelement location="${ECLIPSE_HOME}/plugins/org.eclipse.jdt.compiler.tool_1.0.100.v_963.jar"/>
-        <pathelement location="${ECLIPSE_HOME}/plugins/org.eclipse.jface.text_3.5.0.v20090602.jar"/>
-        <pathelement location="${ECLIPSE_HOME}/plugins/org.eclipse.text_3.5.0.v20090513-2000.jar"/>
+        <!--
+            older eclipse stuff:
+
+            <pathelement location="${ECLIPSE_HOME}/plugins/org.eclipse.ui_3.5.0.I20090604-2000.jar"/>
+            <pathelement location="${ECLIPSE_HOME}/plugins/org.eclipse.swt_3.5.0.v3550b.jar"/>
+            <pathelement location="${ECLIPSE_HOME}/plugins/org.eclipse.jface_3.5.0.I20090525-2000.jar"/>
+            <pathelement location="${ECLIPSE_HOME}/plugins/org.eclipse.core.commands_3.5.0.I20090525-2000.jar"/>
+            <pathelement location="${ECLIPSE_HOME}/plugins/org.eclipse.ui.workbench_3.5.0.I20090603-2000.jar"/>
+            <pathelement location="${ECLIPSE_HOME}/plugins/org.eclipse.core.runtime_3.5.0.v20090525.jar"/>
+            <pathelement location="${ECLIPSE_HOME}/plugins/org.eclipse.osgi_3.5.0.v20090520.jar"/>
+            <pathelement location="${ECLIPSE_HOME}/plugins/org.eclipse.equinox.common_3.5.0.v20090520-1800.jar"/>
+            <pathelement location="${ECLIPSE_HOME}/plugins/org.eclipse.core.jobs_3.4.100.v20090429-1800.jar"/>
+            <pathelement location="${ECLIPSE_HOME}/plugins/org.eclipse.core.runtime.compatibility.registry_3.2.200.v20090429-1800/runtime_registry_compatibility.jar"/>
+            <pathelement location="${ECLIPSE_HOME}/plugins/org.eclipse.equinox.registry_3.4.100.v20090520-1800.jar"/>
+            <pathelement location="${ECLIPSE_HOME}/plugins/org.eclipse.equinox.preferences_3.2.300.v20090520-1800.jar"/>
+            <pathelement location="${ECLIPSE_HOME}/plugins/org.eclipse.core.contenttype_3.4.0.v20090429-1800.jar"/>
+            <pathelement location="${ECLIPSE_HOME}/plugins/org.eclipse.equinox.app_1.2.0.v20090520-1800.jar"/>
+            <pathelement location="${ECLIPSE_HOME}/plugins/org.eclipse.core.resources_3.5.0.v20090512.jar"/>
+            <pathelement location="${ECLIPSE_HOME}/plugins/org.eclipse.jdt.core_3.5.0.v_963.jar"/>
+            <pathelement location="${ECLIPSE_HOME}/plugins/org.eclipse.jdt.compiler.apt_1.0.200.v20090528-1135.jar"/>
+            <pathelement location="${ECLIPSE_HOME}/plugins/org.eclipse.jdt.compiler.tool_1.0.100.v_963.jar"/>
+            <pathelement location="${ECLIPSE_HOME}/plugins/org.eclipse.jface.text_3.5.0.v20090602.jar"/>
+            <pathelement location="${ECLIPSE_HOME}/plugins/org.eclipse.text_3.5.0.v20090513-2000.jar"/>
+        -->
+
+        <pathelement location="${ECLIPSE_HOME}/plugins/org.eclipse.ui_3.5.1.M20090902-1000.jar" />
+        <pathelement location="${ECLIPSE_HOME}/plugins/org.eclipse.swt_3.5.1.v3555a.jar" />
+        <pathelement location="${ECLIPSE_HOME}/plugins/org.eclipse.jface_3.5.1.M20090826-0800.jar" />
+        <pathelement location="${ECLIPSE_HOME}/plugins/org.eclipse.core.commands_3.5.0.I20090525-2000.jar" />
+        <pathelement location="${ECLIPSE_HOME}/plugins/org.eclipse.ui.workbench_3.5.1.M20090826-0800a.jar" />
+        <pathelement location="${ECLIPSE_HOME}/plugins/org.eclipse.core.runtime_3.5.0.v20090525.jar" />
+        <pathelement location="${ECLIPSE_HOME}/plugins/org.eclipse.osgi_3.5.1.R35x_v20090827.jar" />
+        <pathelement location="${ECLIPSE_HOME}/plugins/org.eclipse.equinox.common_3.5.1.R35x_v20090807-1100.jar" />
+        <pathelement location="${ECLIPSE_HOME}/plugins/org.eclipse.core.jobs_3.4.100.v20090429-1800.jar" />
+        <pathelement location="${ECLIPSE_HOME}/plugins/org.eclipse.core.runtime.compatibility.registry_3.2.200.v20090429-1800/runtime_registry_compatibility.jar" />
+        <pathelement location="${ECLIPSE_HOME}/plugins/org.eclipse.equinox.registry_3.4.100.v20090520-1800.jar" />
+        <pathelement location="${ECLIPSE_HOME}/plugins/org.eclipse.equinox.preferences_3.2.300.v20090520-1800.jar" />
+        <pathelement location="${ECLIPSE_HOME}/plugins/org.eclipse.core.contenttype_3.4.1.R35x_v20090826-0451.jar" />
+        <pathelement location="${ECLIPSE_HOME}/plugins/org.eclipse.equinox.app_1.2.0.v20090520-1800.jar" />
+        <pathelement location="${ECLIPSE_HOME}/plugins/org.eclipse.core.resources_3.5.1.R35x_v20090826-0451.jar" />
+        <pathelement location="${ECLIPSE_HOME}/plugins/org.eclipse.jdt.core_3.5.1.v_972_R35x.jar" />
+        <pathelement location="${ECLIPSE_HOME}/plugins/org.eclipse.jdt.compiler.apt_1.0.201.R35x_v20090825-1530.jar" />
+        <pathelement location="${ECLIPSE_HOME}/plugins/org.eclipse.jdt.compiler.tool_1.0.100.v_972_R35x.jar" />
+        <pathelement location="${ECLIPSE_HOME}/plugins/org.eclipse.jface.text_3.5.1.r351_v20090708-0800.jar" />
+        <pathelement location="${ECLIPSE_HOME}/plugins/org.eclipse.text_3.5.0.v20090513-2000.jar" />
+
     </path>
     <path id="FixbugsPlugin.classpath">
-        <path refid="Plug-in Dependencies.libraryclasspath"/>
+        <path refid="eclipse.plugins"/>
         <path refid="scala.classpath" />
         <pathelement location="bin"/>
         <pathelement location="lib/asm-all-3.2.jar"/>
@@ -98,7 +124,7 @@
         <java classname="fixbugs.Main" classpathref="FixbugsPlugin.classpath">
             <arg path="${a}"/>
             <arg path="${b}"/>
-            <arg path="${trans}"/>
+            <arg path="${c}"/>
         </java>
     </target>
 </project>

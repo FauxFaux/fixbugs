@@ -28,7 +28,6 @@ object ModelCheck {
     
     // foreach method: (messy conversion from java collections)
     var results = new MMap[String,ClosedEnvironment[Int]]
-    //List(cn.methods).asInstanceOf[List[MethodNode]].foreach((mn) => {
     for(val i <- 0 to cn.methods.size()-1) {
         val mn = cn.methods.get(i).asInstanceOf[MethodNode]
         // extract cfg using asm
@@ -37,7 +36,8 @@ object ModelCheck {
 	    val nodes = Set() ++ lines
 
         // cross product the domain with the current value
-        val completeDomain = new SetClosedDomain[Int](crossWith(domain.allValues,"_current",nodes))
+        // TODO: fix
+        val completeDomain = domain //new SetClosedDomain[Int](crossWith(domain.allValues,"_current",nodes))
 	    
 	    // model check the method, and add the results
 	    val eval:Evaluator = new Eval(nodes,completeDomain,minimise(lines,succs),minimise(lines,preds))
@@ -74,6 +74,7 @@ object ModelCheck {
       preds += (i -> convert(nodes(i).predecessors).map(nodes.indexOf(_)))
     }
     
+    //printf("cfg = %s\n",(succs,preds))
     (succs,preds)
   }
   
@@ -92,6 +93,7 @@ object ModelCheck {
       val toAcc = acc.getOrElse(srcLine,Set())
       acc += (srcLine -> (toAcc ++ to - srcLine))
     })
+    //printf("acc = %s\n",acc)
     acc
   }
   

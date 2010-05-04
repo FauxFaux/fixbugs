@@ -10,7 +10,6 @@ trait Evaluator {
   def eval(nc:SideCondition):ClosedEnvironment[Int]
 }
 
-
 class Eval(nodes:Set[Int],domain:ClosedDomain[Int],succ:MMap[Int,Set[Int]],pred:MMap[Int,Set[Int]]) extends Evaluator {
 
 	val imPred = Map() ++ pred
