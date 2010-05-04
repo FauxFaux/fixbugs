@@ -1,2 +1,2 @@
 ban _from for metavar names
-fix bytecode analysis integration
+move all debug output to logging

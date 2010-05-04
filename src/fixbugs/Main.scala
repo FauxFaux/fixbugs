@@ -10,24 +10,33 @@ import fixbugs.core.ir.Parser._
 import fixbugs.mc.ModelCheck
 import fixbugs.mc.sets.SetClosedDomain
 import scala.collection.mutable.{HashMap => HMap,HashSet => HSet,Map => MMap}
+import org.slf4j.{Logger,LoggerFactory}
+import org.apache.log4j.BasicConfigurator;
 
 /**
  * Main entry point to the fixbugs system
- * TODO: bytecode hookup
  */
 object Main {
+
+    val log = LoggerFactory getLogger(Main getClass)
 
     def readFile(name:String) = Source.fromFile(name).getLines.foldLeft("")((acc,line) => acc+line)
     
     def main(args:Array[String]) = {
+
+        // Setup log4j backend for slf4j
+        BasicConfigurator.configure();
+        
         // argument parsing
         if(args.length != 3) {
-            println("should be called with three arguments:")
-            println("java {this.getClass.getName} Classname.java Classname.class spec_file.trans")
+            log error ("should be called with three arguments:")
+            log error ("java {this.getClass.getName} Classname.java Classname.class spec_file.trans")
             System.exit(-1)
         }
         val (src::bytecode::spec::Nil) = List[String]() ++ args
-        //printf("src = %s, bc = %s, spec = %s\n",src,bytecode,spec)
+        log info("using source file: {}",src)
+        log info("using bytecode file: {}",bytecode)
+        log info("applying specification: {}",spec)
 
         val parser = ASTParser.newParser(AST.JLS3)
         val srcContents = readFile(src)
@@ -35,18 +44,15 @@ object Main {
         val cu = parser.createAST(null).asInstanceOf[CompilationUnit]
         val ast =  cu.getAST
         
-        //println("parsed source")
-
         val specSrc = readFile(spec)
         replace.apply(new lexical.Scanner(specSrc)) match {
             case Success(ord, _) => {
                 val Replace(from,to,phi) = ord
                 printf("from = %s, to = %s, phi = %s\n",from,to,phi)
                 // pattern match the source
-                check((new ASTPatternMatcher).unifyAll(cu,from),bytecode,cu,ast,phi)
-                //(new ASTPatternMatcher).unifyAll(cu,from)
-                    // generate replacement programs
-                    .map(con => rewrite(ast,to,con,srcContents))
+                val matches = check((new ASTPatternMatcher).unifyAll(cu,from),bytecode,cu,ast,phi)
+                // generate replacement programs
+                matches.map(con => rewrite(ast,to,con,srcContents))
                     .foreach(println(_))
             }
             case Failure(msg, _) => println("fail ",specSrc,msg)
@@ -54,7 +60,6 @@ object Main {
         }
         ()
     }
-
 
     /**
      * NB Assumes: 1 line/statement - consider how to fix
@@ -66,35 +71,37 @@ object Main {
         contexts.foreach(con => {
             val valuation = new HMap[String,Int]()
             for((k,v) <- con.values) {
-                if(v.isInstanceOf[Statement]) {
+                // 
+                if(v.isInstanceOf[ASTNode] && ! v.isInstanceOf[PrimitiveType]) {
                     printf("v = %s, start = %s, line = %s\n ",v,v.getStartPosition, cu.getLineNumber(v.getStartPosition))
                     valuation += (k -> cu.getLineNumber(v.getStartPosition))
+                } else {
+                    log debug("Non-Statement: {}", v.getClass.getName)
                 }
             }
             allValues += ((Map[String,Int]() ++ valuation,con))
         })
 
         val domain = new SetClosedDomain(Set[Map[String,Int]]() ++ allValues.map({case (nums,nodes) => nums}))
+        log debug ("domain = {}",domain)
 
         // do model check, we don't care about methods atm, and converts back to collections from ClosedEnvironment[Int]
-        val results = ModelCheck.check(className,phi,domain).values.flatMap(_.allValues.elements)
-        
-        printf("domain = %s, results = %s, allValues = %s\n",domain,results.toList,allValues);
-
-        allValues
-            .filter({case (nums,nodes) => results contains nums})
-            .foreach({case (nums,nodes) => printf("nums = %s\nEND\n,nodes = %s\nEND\n\n",nums,nodes)})
+        val results = ModelCheck.check(className,phi,domain).values.flatMap(_.allValues.elements).toList.removeDuplicates
+        log debug ("results= {}",results)
 
         // convert back from line numbers to contexts
-        allValues
+        val checked = allValues
             .filter({case (nums,nodes) => results contains nums})
             .map({case (nums,nodes) => nodes})
+
+        checked.foreach(log debug("checked: {}",_))
+        checked
     }
 
     /**
      * Returns generated string from replacement with eclipse IR
      */
-    def rewrite(ast:AST,to:Stmt,context:Context,srcContents:String) = {
+    def rewrite(ast:AST,to:Stmt,context:Context,srcContents:String):String = {
       val from  = context("_from")
       val rewriter = ASTRewrite.create(ast)
       val gen = new ASTPatternGenerator(ast,rewriter,Map() ++context.values,true)
@@ -105,7 +112,6 @@ object Main {
       val edit = rewriter.rewriteAST(doc,null)
       edit.apply(doc)
       val output = doc.get
-      println(output)
       output
     }
 

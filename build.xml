@@ -78,6 +78,9 @@
         <pathelement location="lib/asm-all-3.2.jar"/>
         <pathelement location="lib/ScalaCheck-1.5.jar"/>
         <pathelement location="lib/scalatest-0.9.5.jar"/>
+        <pathelement location="lib/log4j-1.2.16.jar"/>
+        <pathelement location="lib/slf4j-log4j12-1.5.11.jar"/>
+        <pathelement location="lib/slf4j-api-1.5.11.jar"/>
     </path>
     <target name="init">
         <mkdir dir="bin"/>
@@ -125,6 +128,7 @@
             <arg path="${a}"/>
             <arg path="${b}"/>
             <arg path="${c}"/>
+            <sysproperty key="log4j.configuration" value="${log4j.loc}" />
         </java>
     </target>
 </project>
