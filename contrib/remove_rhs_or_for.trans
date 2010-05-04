@@ -1,0 +1,14 @@
+PICK
+    REPLACE
+        ::t x = l + r;
+    WITH
+        ::t x = l;
+    WHERE
+        True
+OR
+    REPLACE
+        for (x;y;i++) ....
+    WITH
+        ;
+    WHERE
+        True

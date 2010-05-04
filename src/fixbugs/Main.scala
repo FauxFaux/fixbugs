@@ -5,7 +5,8 @@ import scala.io.Source
 import org.eclipse.jdt.core.dom._
 import org.eclipse.jdt.core.dom.rewrite._
 import org.eclipse.jface.text.Document
-import fixbugs.core.ir.{Statement => Stmt,ASTPatternMatcher,ASTPatternGenerator,Context,Replace,SideCondition}
+import fixbugs.core.ir.{Statement => Stmt,_}
+//ASTPatternMatcher,ASTPatternGenerator,Context,Replace,Then,Transformation,SideCondition}
 import fixbugs.core.ir.Parser._
 import fixbugs.mc.ModelCheck
 import fixbugs.mc.sets.SetClosedDomain
@@ -38,28 +39,36 @@ object Main {
         log info("using bytecode file: {}",bytecode)
         log info("applying specification: {}",spec)
 
-        val parser = ASTParser.newParser(AST.JLS3)
         val srcContents = readFile(src)
-        parser.setSource(srcContents.toCharArray)
-        val cu = parser.createAST(null).asInstanceOf[CompilationUnit]
-        val ast =  cu.getAST
-        
         val specSrc = readFile(spec)
-        replace.apply(new lexical.Scanner(specSrc)) match {
-            case Success(ord, _) => {
-                val Replace(from,to,phi) = ord
-                printf("from = %s, to = %s, phi = %s\n",from,to,phi)
-                // pattern match the source
-                val matches = check((new ASTPatternMatcher).unifyAll(cu,from),bytecode,cu,ast,phi)
-                // generate replacement programs
-                matches.map(con => rewrite(ast,to,con,srcContents))
-                    .foreach(println(_))
-            }
+        trans.apply(new lexical.Scanner(specSrc)) match {
+            case Success(ord, _) => apply_trans(ord,srcContents,bytecode)
             case Failure(msg, _) => println("fail ",specSrc,msg)
             case Error(msg, _) => println("error ",specSrc,msg)
         }
-        ()
     }
+
+    def apply_trans(trans:Transformation,srcContents:String,bytecode:String):List[String] =
+        trans match {
+            case Replace(from,to,phi) => {
+                // Setup the eclipse parsing framework
+                val parser = ASTParser.newParser(AST.JLS3)
+                parser.setSource(srcContents.toCharArray)
+                val cu = parser.createAST(null).asInstanceOf[CompilationUnit]
+                val ast = cu.getAST
+
+                // pattern match the source
+                val matches = check((new ASTPatternMatcher).unifyAll(cu,from),bytecode,cu,ast,phi)
+                // generate replacement programs
+                    .map(con => rewrite(ast,to,con,srcContents))
+                    .toList
+
+                matches.foreach(log debug(_))
+                matches
+            }
+            case Then(transformations) => transformations.foldLeft(List(srcContents))((acc,t) => acc.flatMap(apply_trans(t,_,bytecode)))
+            case Pick(transformations) => transformations.flatMap(apply_trans(_,srcContents,bytecode))
+        }
 
     /**
      * NB Assumes: 1 line/statement - consider how to fix

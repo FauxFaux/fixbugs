@@ -3,4 +3,4 @@ REPLACE
 WITH
     ::t x = l;
 WHERE
-    False
+    True

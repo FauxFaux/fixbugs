@@ -11,7 +11,7 @@ object Parser extends StandardTokenParsers {
   // Common
   //override def skipWhitespace = true
 
-  val operators = List(
+  val operators = List (
     Op.AND,
     Op.CONDITIONAL_AND,
     Op.CONDITIONAL_OR,
@@ -48,7 +48,8 @@ object Parser extends StandardTokenParsers {
     "int","long","short","byte","float","double","char",
     // Side conditions
     "F","G","X","U","true","True","false","False","is","A","E","and","or","not",
-    "REPLACE","WITH","THEN","WHERE")
+    // Transformations and strategies
+    "REPLACE","WITH","THEN","WHERE","DO","PICK","OR")
 
   def postFix:Parser[PostOp] = ("++" | "--") ^^ PostOp.toOperator
   def inFix:Parser[Op] = {
@@ -70,7 +71,6 @@ object Parser extends StandardTokenParsers {
   })
 
   // definitions of type patterns
-  // TODO: types
   def typedef = metaType | typeLit | primType
   def metaType = "::" ~> ident ^^ {TypeMetavar(_)}
   def typeLit = "'" ~> (ident ^^ {SimpType(_)}) <~ "'"
@@ -157,8 +157,9 @@ object Parser extends StandardTokenParsers {
   def replace = ("REPLACE"~> statement)~ ("WITH" ~> statement) ~ ("WHERE" ~> side) ^^ {
     case from~to~cond => println(to); Replace(from,to,cond)
   }
-  def then = (trans <~ "THEN") ~ trans ^^ {case l~r => Then(l,r)}
+  def then = ("DO" ~> trans <~ "THEN") ~ trans ^^ {case l~r => Then(List(l,r))}
+  def pick = ("PICK" ~> trans <~ "OR") ~ trans ^^ {case l~r => Pick(List(l,r))}
   
-  def trans:Parser[Transformation] = replace ^^ {x => println(x);x}//| then
+  def trans:Parser[Transformation] = replace | then | pick
 }
 
