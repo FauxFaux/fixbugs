@@ -154,8 +154,8 @@ object Parser extends StandardTokenParsers {
   def side:Parser[SideCondition] = $binary
   
   // Transformations
-  def replace = ("REPLACE"~> statement)~ ("WITH" ~> statement) ~ ("WHERE" ~> side) ^^ {
-    case from~to~cond => println(to); Replace(from,to,cond)
+  def replace = ("REPLACE"~> statement)~ ("WITH" ~> statement) ~ opt("WHERE" ~> side) ^^ {
+    case from~to~cond => Replace(from,to,cond.getOrElse(STrue()))
   }
   def then = ("DO" ~> trans <~ "THEN") ~ trans ^^ {case l~r => Then(List(l,r))}
   def pick = ("PICK" ~> trans <~ "OR") ~ trans ^^ {case l~r => Pick(List(l,r))}

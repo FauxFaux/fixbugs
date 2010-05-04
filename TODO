@@ -3,9 +3,8 @@ move all debug output to logging
 finish off adding all types
 mu calculus side conditions
 Move to only taking source, and compiling
+write tutorial
 actions
-    COMPOSE action WITH action AND action ...
-        - intersection of side condition bindings
     CHOOSE action OR action OR action ...
         - just do them all
     ADD METHOD type metavar( type metavar, ... ) statement TO metavar
