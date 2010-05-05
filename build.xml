@@ -126,7 +126,6 @@
     <target name="run" depends="build">
         <java classname="fixbugs.Main" classpathref="FixbugsPlugin.classpath">
             <arg path="${a}"/>
-            <arg path="${b}"/>
             <arg path="${c}"/>
             <sysproperty key="log4j.configuration" value="${log4j.loc}" />
         </java>

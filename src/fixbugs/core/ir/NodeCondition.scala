@@ -7,16 +7,19 @@ import Gen._
 /**
  * nc   :=  E Path
  *      |   A Path
+ *      |   nu|mu X. nc
  *      |   nc ^ nc
  *      |   nc \/ nc
  *      |   ¬ nc
- *      |   LineNUmber
+ *      |   NodePred
  *      |   True
  *      |   False
  */
 sealed abstract class NodeCondition {}
 case class All(path:Path) extends NodeCondition
 case class Exists(path:Path) extends NodeCondition
+case class Mu(varName:String,phi:NodeCondition) extends NodeCondition
+case class Nu(varName:String,phi:NodeCondition) extends NodeCondition
 case class And(left:NodeCondition,right:NodeCondition) extends NodeCondition
 case class Or(left:NodeCondition,right:NodeCondition) extends NodeCondition
 case class Not(phi:NodeCondition) extends NodeCondition

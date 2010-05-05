@@ -10,6 +10,7 @@ import fixbugs.core.ir.{Statement => Stmt,_}
 import fixbugs.core.ir.Parser._
 import fixbugs.mc.ModelCheck
 import fixbugs.mc.sets.SetClosedDomain
+import fixbugs.util.Eval
 import scala.collection.mutable.{HashMap => HMap,HashSet => HSet,Map => MMap}
 import org.slf4j.{Logger,LoggerFactory}
 import org.apache.log4j.BasicConfigurator;
@@ -22,6 +23,8 @@ object Main {
     val log = LoggerFactory getLogger(Main getClass)
 
     def readFile(name:String) = Source.fromFile(name).getLines.foldLeft("")((acc,line) => acc+line)
+
+    def lastBut(str:Array[String],n:Int) = str(str.length-n)
     
     def main(args:Array[String]) = {
 
@@ -29,26 +32,27 @@ object Main {
         BasicConfigurator.configure();
         
         // argument parsing
-        if(args.length != 3) {
+        if(args.length != 2) {
             log error ("should be called with three arguments:")
-            log error ("java {this.getClass.getName} Classname.java Classname.class spec_file.trans")
+            log error ("java {this.getClass.getName} Classname.java spec_file.trans")
             System.exit(-1)
         }
-        val (src::bytecode::spec::Nil) = List[String]() ++ args
+        val (src::spec::Nil) = List[String]() ++ args
         log info("using source file: {}",src)
-        log info("using bytecode file: {}",bytecode)
-        log info("applying specification: {}",spec)
+        log info("using specification: {}",spec)
 
         val srcContents = readFile(src)
         val specSrc = readFile(spec)
+        val fileSplit = lastBut(src.split("/"),1).split("\\.")(0)
+
         trans.apply(new lexical.Scanner(specSrc)) match {
-            case Success(ord, _) => apply_trans(ord,srcContents,bytecode)
+            case Success(ord, _) => apply_trans(ord,fileSplit,srcContents)
             case Failure(msg, _) => println("fail ",specSrc,msg)
             case Error(msg, _) => println("error ",specSrc,msg)
         }
     }
 
-    def apply_trans(trans:Transformation,srcContents:String,bytecode:String):List[String] =
+    def apply_trans(trans:Transformation,name:String,srcContents:String):List[String] =
         trans match {
             case Replace(from,to,phi) => {
                 // Setup the eclipse parsing framework
@@ -57,8 +61,9 @@ object Main {
                 val cu = parser.createAST(null).asInstanceOf[CompilationUnit]
                 val ast = cu.getAST
 
-                // pattern match the source
-                val matches = check((new ASTPatternMatcher).unifyAll(cu,from),bytecode,cu,ast,phi)
+                // compiles the source code and pattern match the source
+                val compiled = Eval.compile(name,srcContents)
+                val matches = check((new ASTPatternMatcher).unifyAll(cu,from),compiled.get(0),cu,ast,phi)
                 // generate replacement programs
                     .map(con => rewrite(ast,to,con,srcContents))
                     .toList
@@ -66,8 +71,10 @@ object Main {
                 matches.foreach(log debug(_))
                 matches
             }
-            case Then(transformations) => transformations.foldLeft(List(srcContents))((acc,t) => acc.flatMap(apply_trans(t,_,bytecode)))
-            case Pick(transformations) => transformations.flatMap(apply_trans(_,srcContents,bytecode))
+            case Then(transformations) =>
+                transformations.foldLeft(List(srcContents)){(acc,t) =>
+                    acc.flatMap(apply_trans(t,name,_))}
+            case Pick(transformations) => transformations.flatMap(apply_trans(_,name,srcContents))
         }
 
     /**

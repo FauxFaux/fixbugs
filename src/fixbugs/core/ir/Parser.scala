@@ -47,9 +47,9 @@ object Parser extends StandardTokenParsers {
     // types
     "int","long","short","byte","float","double","char",
     // Side conditions
-    "F","G","X","U","true","True","false","False","is","A","E","and","or","not",
-    // Transformations and strategies
-    "REPLACE","WITH","THEN","WHERE","DO","PICK","OR")
+    "F","G","X","U","true","True","false","False","is","A","E","and","or","not","mu","nu",
+    // Transformations and Strategies
+    "REPLACE","WITH","WHERE","ADD","METHOD","TO","THEN","DO","PICK","OR")
 
   def postFix:Parser[PostOp] = ("++" | "--") ^^ PostOp.toOperator
   def inFix:Parser[Op] = {
@@ -131,6 +131,8 @@ object Parser extends StandardTokenParsers {
   def _unary = _inner |
     ("¬" ~ _inner ^^ {case _~n => Not(n)}) |
     "is"~>ident ^^ (NodePred(_)) |
+    "mu"~>ident~node ^^ {case i~n => Mu(i,n)} |
+    "nu"~>ident~node ^^ {case i~n => Nu(i,n)} |
     "A"~>"[" ~> path <~"]" ^^ (All(_)) |
     "E"~>"[" ~> path <~ "]" ^^ (Exists(_))
   def _binary:Parser[NodeCondition] = _unary ~ opt(("^" | "|") ~ node) ^^ (x => x match {
@@ -157,8 +159,14 @@ object Parser extends StandardTokenParsers {
   def replace = ("REPLACE"~> statement)~ ("WITH" ~> statement) ~ opt("WHERE" ~> side) ^^ {
     case from~to~cond => Replace(from,to,cond.getOrElse(STrue()))
   }
-  def then = ("DO" ~> trans <~ "THEN") ~ trans ^^ {case l~r => Then(List(l,r))}
-  def pick = ("PICK" ~> trans <~ "OR") ~ trans ^^ {case l~r => Pick(List(l,r))}
+
+  def vdecl = (typedef ~ inner) ^^ {case (t~i) => VDecl(t,i)}
+  def vdecls = rep1sep(vdecl,",")
+  def add_method = ("ADD" ~> "METHOD" ~> vdecl) ~ ("(" ~> vdecls <~ ")") ~ statements ~ ("TO" ~> inner) ~ opt("WHERE" ~> side) ^^ {
+    case ret~args~stmts~named~cond => AddMethod(ret,args,stmts,named,cond.getOrElse(STrue()))
+  }
+  def then = "DO" ~> rep1sep(trans,"THEN") ^^ {case l => Then(l)}
+  def pick = "PICK" ~> rep1sep(trans,"OR") ^^ {case l => Pick(l)}
   
   def trans:Parser[Transformation] = replace | then | pick
 }

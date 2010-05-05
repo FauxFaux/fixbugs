@@ -1,13 +1,18 @@
 ban _from for metavar names
-move all debug output to logging
+
 finish off adding all types
-mu calculus side conditions
-Move to only taking source, and compiling
-write tutorial
+u calculus side conditions
+    - eval
 actions
-    CHOOSE action OR action OR action ...
-        - just do them all
-    ADD METHOD type metavar( type metavar, ... ) statement TO metavar
+    ADD METHOD type metavar( type metavar, ... ) statement TO metavar WHERE
+        - implement in main
+more extensive side condition testing
 
+Deal with multiple bytecode files
+class predicates
+
+license code
+move all debug output to logging
+Prefix Operators
 Alias Analysis?
-
+write tutorial
