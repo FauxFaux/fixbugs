@@ -1,8 +1,8 @@
 REPLACE {
      ....
-     %" lock.lock();
+     l: %" lock.lock();
      ....
-     %" lock.unlock();
+     u: %" lock.unlock();
 } WITH {
      ....
      try {
@@ -12,20 +12,5 @@ REPLACE {
          %" lock.unlock();
      }
 } WHERE
-     True
-
-/*
-REPLACE {
-     l: % lock."lock"();
-        ....
-     u: % lock."unlock"();
-} WITH
-     try {
-         % lock."lock"();
-         ....
-     } finally {
-         % lock."unlock"();
-     }
-WHERE
      E[F(u)] | ¬A[F(u)] @ l
-*/
+

@@ -30,6 +30,13 @@ class ASTPatternGenerator(ast:AST,rewrite:ASTRewrite, context:Map[String,ASTNode
       }
   }
 
+  def makeGroup(stmts:List[ASTNode]) = rewrite.createGroupNode(stmts.toArray.asInstanceOf[Array[ASTNode]])
+
+  def generateStatements(stmt:Stmt):ASTNode = stmt match {
+    case SBlock(stmts) => makeGroup(stmts.map(generate(_)))
+    case x => generate(x)
+  }
+
   /**
    * Generates Statements
    */
@@ -38,7 +45,7 @@ class ASTPatternGenerator(ast:AST,rewrite:ASTRewrite, context:Map[String,ASTNode
         if (wildcardIndex >= wildcards.size) {
             throw new Exception("Out of Index Wildcard Pattern: " + wildcardIndex)
         } else {
-            val nodes = rewrite.createGroupNode(wildcards(wildcardIndex).toArray.asInstanceOf[Array[ASTNode]])
+            val nodes = makeGroup(wildcards(wildcardIndex))
             wildcardIndex += 1
             nodes
         }

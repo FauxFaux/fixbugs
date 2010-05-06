@@ -134,7 +134,7 @@ object Main {
       log debug("wildcards = {}",wildcards)
       val gen = new ASTPatternGenerator(ast,rewriter,Map() ++context.values,true,wildcards)
       val doc = new Document(srcContents)
-      rewriter.replace(from,gen.generate(to),null)
+      rewriter.replace(from,gen.generateStatements(to),null)
 
       // Now remove other nodes matched
       val nodes = context.replaceNodes - from
