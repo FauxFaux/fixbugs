@@ -1,0 +1,31 @@
+REPLACE {
+     ....
+     %" lock.lock();
+     ....
+     %" lock.unlock();
+} WITH {
+     ....
+     try {
+         %" lock.lock();
+         ....
+     } finally {
+         %" lock.unlock();
+     }
+} WHERE
+     True
+
+/*
+REPLACE {
+     l: % lock."lock"();
+        ....
+     u: % lock."unlock"();
+} WITH
+     try {
+         % lock."lock"();
+         ....
+     } finally {
+         % lock."unlock"();
+     }
+WHERE
+     E[F(u)] | ¬A[F(u)] @ l
+*/

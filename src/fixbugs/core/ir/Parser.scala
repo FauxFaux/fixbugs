@@ -35,7 +35,7 @@ object Parser extends StandardTokenParsers {
   
   val postfix = List(PostOp.DECREMENT, PostOp.INCREMENT)
 
-  val other = List(";",":","(",")","....","=","{","}","::","\"","'","`") ++
+  val other = List(";",":","(",")","....","=","{","}","::","\"","'","`","%",".") ++
     // side condition
     List("^","|","¬","[","]","@")
 
@@ -58,7 +58,20 @@ object Parser extends StandardTokenParsers {
   }
 
   // TODO: arguments for methods, literals
-  def inner = ident ^^ {Metavar(_)} //| '"' '"'
+  def arguments = "(" ~> repsep(expression,",") <~ ")"
+  def method = (("%" ~> expression) ~ ("." ~> ident) ~ arguments) ^^ {
+    case (e~name~args) => Method(e,name,args)
+  }
+  def namedMethod = (("%" ~> "\"" ~> expression) ~ ("." ~> ident) ~ arguments) ^^ {
+    case (e~name~args) => NamedMethod(e,name,args)
+  }
+
+    //case e~None~name~None~args => Method(e,name,args)
+    //case e~Some(x)~name~Some(y)~args => NamedMethod(e,name,args)
+    // case (e~(Some(x)~name)~Some(y)~args) => NamedMethod(e,name,args)
+  def mv = ident ^^ {Metavar(_)}
+
+  def inner:Parser[Expression] = mv | method | namedMethod
 
   def unary = inner ~ opt(postFix) ^^ (x => x match {
       case e~None => e
@@ -82,7 +95,9 @@ object Parser extends StandardTokenParsers {
   def ass = typedef ~ ident ~ ("=" ~> expression <~ ";") ^^ { case t~v~e => Assignment(t,v,e) }
   def ifelse = ("if"~>"("~>expression<~")")~statement~("else"~>statement) ^^ { case c~t~f => IfElse(c,t,f) }
   def loop = ("while"~>"("~>expression<~")")~statement ^^ { case c~b => While(c,b) }
-  def tcf = ("try"~>block)~("catch"~>block)~("finally"~>block) ^^ {case t~c~f => TryCatchFinally(t,c,f) }
+  //def tcf = ("try"~>block)~("catch"~>block)~("finally"~>block) ^^ {case t~c~f => TryCatchFinally(t,c,f) }
+  // TODO: deal with full tcf patterns
+  def tcf = ("try"~>block)~/*("catch"~>block)~*/("finally"~>block) ^^ {case t~f => TryCatchFinally(t,SBlock(List()),f) }
   def see = expression <~ ";" ^^ { SideEffectExpr(_) }
   def block = "{" ~> statements <~ "}" ^^ { SBlock(_)}
   def returnStmt = "return" ~> expression <~ ";" ^^ {Return(_)}
@@ -160,9 +175,9 @@ object Parser extends StandardTokenParsers {
     case from~to~cond => Replace(from,to,cond.getOrElse(STrue()))
   }
 
-  def vdecl = (typedef ~ inner) ^^ {case (t~i) => VDecl(t,i)}
+  def vdecl = (typedef ~ mv) ^^ {case (t~i) => VDecl(t,i)}
   def vdecls = rep1sep(vdecl,",")
-  def add_method = ("ADD" ~> "METHOD" ~> vdecl) ~ ("(" ~> vdecls <~ ")") ~ statements ~ ("TO" ~> inner) ~ opt("WHERE" ~> side) ^^ {
+  def add_method = ("ADD" ~> "METHOD" ~> vdecl) ~ ("(" ~> vdecls <~ ")") ~ statements ~ ("TO" ~> mv) ~ opt("WHERE" ~> side) ^^ {
     case ret~args~stmts~named~cond => AddMethod(ret,args,stmts,named,cond.getOrElse(STrue()))
   }
   def then = "DO" ~> rep1sep(trans,"THEN") ^^ {case l => Then(l)}

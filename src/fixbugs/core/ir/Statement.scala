@@ -17,7 +17,9 @@ case class IfElse(cond:Expression,trueBlock:Statement,falseBlock:Statement) exte
 case class While(cond:Expression,body:Statement) extends Statement
 case class TryCatchFinally(tryBlock:SBlock,catchBlock:SBlock,finallyBlock:SBlock) extends Statement
 case class SideEffectExpr(expr:Expression) extends Statement
-case class SBlock(stmts:List[Statement]) extends Statement
+case class SBlock(stmts:List[Statement]) extends Statement {
+    override def toString() = "{"+(stmts.foldLeft(new StringBuilder()){(acc,s) => acc.append("\n").append(s)}).toString+"\n}"
+}
 case class Return(expr:Expression) extends Statement
 case class Throw(expr:Expression) extends Statement
 case class For(init:List[Expression],cond:Expression,updaters:List[Expression],body:Statement) extends Statement

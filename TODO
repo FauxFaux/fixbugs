@@ -1,16 +1,29 @@
-finish off adding all types
-u calculus side conditions
-    - eval
-actions
-    ADD METHOD type metavar( type metavar, ... ) statement TO metavar WHERE
-        - implement in main
-more extensive side condition testing
+Immediate:
+    3 specs from paper
+        - lock/unlock
+            - subtype predicate
+            - fix generation
 
-Deal with multiple bytecode files
-class predicates
+    u calculus side conditions
+        - eval
+    actions
+        ADD METHOD type metavar( type metavar, ... ) statement TO metavar WHERE
+            - implement in main
+    more extensive side condition testing
 
-license code
-move all debug output to logging
-Prefix Operators
-Alias Analysis?
-write tutorial
+context sensitive wildcards
+consider _from situation in comparison
+
+Next:
+    Deal with multiple bytecode files
+    class predicates
+
+Small Delay:
+    finish off adding all types
+    license code
+    move all debug output to logging
+    Prefix Operators
+
+Big Delay:
+    Alias Analysis?
+    write tutorial

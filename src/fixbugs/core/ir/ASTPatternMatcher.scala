@@ -1,12 +1,14 @@
 package fixbugs.core.ir
 
-import scala.collection.mutable.HashMap
+import scala.collection.mutable.{HashMap,Set => MSet}
 import scala.collection.mutable.{Map => MMap}
 import scala.collection.jcl.MutableIterator.Wrapper
 import org.eclipse.jdt.core.dom._
 import org.eclipse.jdt.core.dom.{Statement => IRStmt, Expression => IRExpr, Assignment => IRAssign}
 import fixbugs.core.ir.{Statement => Stmt,Expression => Expr,Assignment => Assign}
 import fixbugs.util.EclipseUtil.parse
+
+import org.slf4j.{Logger,LoggerFactory}
 
 /**
  * Pattern matchs a Fixbugs pattern against the eclipse AST
@@ -16,14 +18,16 @@ import fixbugs.util.EclipseUtil.parse
  * 
  */
 class ASTPatternMatcher {
-   
+
+  val log = LoggerFactory getLogger(this getClass)
+
   var i = 0
 
   // UTILITY METHODS
   def next = {i+=1;i}
   // context creation
   def c(v:Boolean):Context = c(v,new HashMap())
-  def c(v:Boolean,vals:MMap[String,ASTNode]):Context = new Context(v,vals)
+  def c(v:Boolean,vals:MMap[String,ASTNode]):Context = new Context(v,vals,MSet())
   // singleton context
   def one(k:String,v:ASTNode):Context = c(true,HashMap(k->v))
   def guard(g:Boolean,context:()=>Context) = {
@@ -38,13 +42,19 @@ class ASTPatternMatcher {
  
   // should only be called in testing
   protected def unifyAll(src:String,pattern:Stmt):Iterator[Context] = unifyAll(parse(src),pattern)
-  
+
+  var debugIndent = 0
+  def tabs() = (0 to debugIndent).foldLeft(new StringBuilder){(acc,_) => acc.append("\t")} toString
+
+  var wildcards:List[List[IRStmt]] = Nil
+
   /**
    * Accumulate all contexts for a compilation unit
    * TODO: initializers, constructors, fields
    */
   def unifyAll(cu:CompilationUnit,pattern:Stmt):Iterator[Context] = {
-    cu.types.iterator.flatMap(
+    wildcards = Nil
+    val acc = cu.types.iterator.flatMap(
       _.asInstanceOf[TypeDeclaration].getMethods.flatMap({m =>
         val inner = m.getBody.statements
         pattern match {
@@ -53,6 +63,7 @@ class ASTPatternMatcher {
         }
       })
     )
+    acc
   }
   
     // Sigh collection conversions
@@ -61,18 +72,42 @@ class ASTPatternMatcher {
       var l = List[IRStmt]()
       while(it.hasNext)
         l += it.next.asInstanceOf[IRStmt]
-      block(l,pattern)
+      block(l,pattern,Nil)
     }
     
-	def block(stmts:List[IRStmt],pattern:List[Statement]):Context = {
-	  (stmts,pattern) match {
-	    case (s::ss,Wildcard()::p::ps) =>
-	      unifyStmt(s,p) && (()=> block(ss,ps)) || (() => block(ss,Wildcard()::p::ps))
-	    case (s::ss,p::ps) => unifyStmt(s,p) && (()=>block(ss,ps))
-	    case (Nil,Wildcard() :: Nil) => c(true)
-	    case _ => c(false)
+	def block(stmts:List[IRStmt],pattern:List[Statement],wildcard:List[IRStmt]):Context = {
+	  val res = ((stmts,pattern) match {
+	    case (s::ss,Wildcard()::p::ps) => {
+          log debug("Block - Wildcard w Stmt: %s (%d) %s (%d)".format(s.getClass.getName,stmts.size,p,pattern.size))
+	      val attempt = unifyStmt(s,p)
+          log debug ("Attempt.status: {},wildcard = {}",attempt.status,wildcard)
+          if (attempt.status) {
+            wildcards = wildcard :: wildcards
+            log debug ("wildcards now {}", wildcards)
+            attempt && (()=> block(ss,ps,Nil))
+          } else {
+            block(ss,Wildcard()::p::ps,s::wildcard)
+          }
+        }
+	    case (s::ss,p::ps) => {
+          log debug("Block - Stmt w Stmt: %s (%d) %s (%d)".format(s.getClass.getName,stmts.size,p,pattern.size))
+          unifyStmt(s,p) && (()=>block(ss,ps,Nil))
+        }
+	    case (Nil,Wildcard() :: Nil) => {
+            wildcards = wildcard :: wildcards
+            c(true)
+        }
+	    case (Nil,Nil) => {
+            c(true)
+        }
+	    case _ => {
+            log debug("Hit Base match in block")
+            c(false)
+        }
         //case _ => println(stmts,pattern); throw new Exception("Debug Error")
-	  }
+	  })
+      log debug ("Block Res: %s for %d and %d".format(res.status,stmts.size,pattern.size))
+      res
 	}
   
   /**
@@ -103,15 +138,17 @@ class ASTPatternMatcher {
     EmptyStatement
    */
   def unifyStmt(node:IRStmt,pattern:Stmt):Context = {
-    println(node.getClass,pattern)
+    log debug("Statement: "+node.getClass.getName+" {}",pattern)
     val con = (node,pattern) match {
      
-      case (stmt,Label(lbl,statement)) => unifyStmt(stmt,statement) & one(lbl,stmt)
+      case (stmt,Label(lbl,statement)) => {
+          log debug ("Label: {}",unifyStmt(stmt,statement).status)
+          unifyStmt(stmt,statement) && (() => one(lbl,stmt))
+      }
       case (stmt,Wildcard()) => c(true)
       case (stmt:EmptyStatement,Skip()) => c(true)
       // fuzzy matching
       // wildcard matches many statements
-      // TODO: ignore non-matching prefix/suffix
       case (stmt:Block,SBlock(stmts)) => {
     	  // recurse over list, destroying
           blockIt(stmt.statements,stmts)
@@ -171,6 +208,8 @@ class ASTPatternMatcher {
       case _ => c(false)
     }
     con.values += "_from" -> node
+    con.replaceNodes += node
+    log.debug ("con.status = {}",con.status)
     con
   }
 
@@ -209,11 +248,22 @@ class ASTPatternMatcher {
    *  NB: arguments, it ignores longer pairs
    */
   def unifyExpr(node:IRExpr,pattern:Expr):Context = {
-    (node,pattern) match {
+    log debug(tabs()+"Expression: "+node.getClass.getName+" {}",pattern)
+    debugIndent += 1
+    val res = (node,pattern) match {
+      //case (_,Anything()) => c(true)
       case (expr,Metavar(name)) => one(name,expr)
-      // TODO: expression before method call matching
-      case (expr:MethodInvocation,Method(name,args)) =>
-        unifyExprs(expr.arguments,args) & one(name,expr.getName)
+      case (expr:MethodInvocation,Method(callOn,name,args)) => {
+        log debug ("e: {}",unifyExpr(expr.getExpression,callOn).status)
+        log debug ("args: {}",unifyExprs(expr.arguments,args).status)
+        log debug ("one: {}",one(name,expr.getName).status)
+        log debug ("all: {}",(unifyExpr(expr.getExpression,callOn) & unifyExprs(expr.arguments,args) & one(name,expr.getName)).status)
+        unifyExpr(expr.getExpression,callOn) & unifyExprs(expr.arguments,args) & one(name,expr.getName)
+      }
+      case (expr:MethodInvocation,NamedMethod(callOn,name,args)) => {
+        log debug ("c: %s %s %s ".format(name.equals(expr.getName.toString),name,expr.getName))
+        unifyExpr(expr.getExpression,callOn) & unifyExprs(expr.arguments,args) & c(name.equals(expr.getName.toString))
+      }
       case (expr:InfixExpression,BinOp(left,right,op)) =>
         guard(op == expr.getOperator,()=>unifyExpr(expr.getLeftOperand,left) & unifyExpr(expr.getRightOperand,right))
       case (expr:PostfixExpression,UnOp(inner,op)) =>
@@ -231,11 +281,19 @@ class ASTPatternMatcher {
         
       case _ => c(false)
     }
+    debugIndent -= 1
+    log debug(tabs()+"Res: {}",res.status)
+    res
   }
   
   def unifyExprs(arguments:java.util.List[_],args:List[Expression]) = {
+    log debug(tabs()+"ExpressionS: "+arguments.size+" {}",args.size)
+    debugIndent += 1
     val margs = arguments.asInstanceOf[java.util.List[IRExpr]].iterator.zip(args.elements)
-    margs.map({case (e,p) => unifyExpr(e,p)}).foldLeft(c(true))(_&_)
+    val res = margs.map({case (e,p) => unifyExpr(e,p)}).foldLeft(c(true))(_&_)
+    debugIndent -= 1
+    log debug(tabs()+"Res: {}",res.status)
+    res
   }
   
   /**
@@ -258,10 +316,13 @@ class ASTPatternMatcher {
  * Immutable Context Object
  * Note: wraps mutable map for simplicity
  */
-class Context(st:Boolean,vals:MMap[String,ASTNode]) extends Cloneable[Context] with Function1[String, ASTNode] {
+class Context(st:Boolean,vals:MMap[String,ASTNode],replace:MSet[ASTNode]) extends Cloneable[Context] with Function1[String, ASTNode] {
+  
+  val log = LoggerFactory getLogger(this getClass)
   
   val values = vals
   val status = st
+  val replaceNodes = replace
   
   def apply(name:String) = values(name)
 
@@ -280,23 +341,28 @@ class Context(st:Boolean,vals:MMap[String,ASTNode]) extends Cloneable[Context] w
    * Requires both status to be true
    */
   def &(other:Context):Context = {
-    var status = this.status && other.status 
+    var status = this.status && other.status
+    log debug ("& comparison: %s, %s, %s".format(status,values,other.values))
     if (status) {
-      val k = (Set() ++ values.keys) ** (Set() ++ other.values.keys)
-      status &= k.map(k => values(k) == other.values(k)).foldLeft(true)(_&&_)
+      val k = ((Set() ++ values.keys) ** (Set() ++ other.values.keys)) - "_from"
+      status &= k.map(k => {
+          val eq = values(k).toString.equals(other.values(k).toString)
+          if (!eq) log debug ("& fail on key %s for %s and %s".format(k,values(k),other.values(k)))
+          eq
+      }).foldLeft(true)(_&&_)
     }
-    new Context(status,values ++ other.values)
+    new Context(status,values ++ other.values,replaceNodes ++ other.replaceNodes)
   }
 
-  def &&(other:()=>Context):Context = this & other()
+  def &&(other:()=>Context):Context = if(this.status) this & other() else this
   
   def add(arg:(String,ASTNode)):Context = {
     val (metavar,node) = arg
     val old = values(metavar)
     if(old != node)
-      new Context(false,values)
+      new Context(false,values,replaceNodes)
     else
-      new Context(true,values + (metavar -> node))
+      new Context(true,values + (metavar -> node),replaceNodes)
   }
   
   override def toString = {

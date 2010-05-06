@@ -46,8 +46,13 @@ object Main {
         val fileSplit = lastBut(src.split("/"),1).split("\\.")(0)
 
         trans.apply(new lexical.Scanner(specSrc)) match {
-            case Success(ord, _) => apply_trans(ord,fileSplit,srcContents)
-            case Failure(msg, _) => println("fail ",specSrc,msg)
+            case Success(ord, _) => {
+                log debug("Specification Parsing Complete: {}",ord)
+                apply_trans(ord,fileSplit,srcContents)
+            }
+            case Failure(msg, scanner) => { log.debug(
+                "%s @ col: %d row: %d src: %s".format(msg,scanner.pos.column,scanner.pos.line,specSrc)
+            ) }
             case Error(msg, _) => println("error ",specSrc,msg)
         }
     }
@@ -63,9 +68,10 @@ object Main {
 
                 // compiles the source code and pattern match the source
                 val compiled = Eval.compile(name,srcContents)
-                val matches = check((new ASTPatternMatcher).unifyAll(cu,from),compiled.get(0),cu,ast,phi)
+                val matcher = new ASTPatternMatcher
+                val matches = check(matcher.unifyAll(cu,from),compiled.get(0),cu,ast,phi)
                 // generate replacement programs
-                    .map(con => rewrite(ast,to,con,srcContents))
+                    .map(con => rewrite(ast,to,con,srcContents,matcher.wildcards.reverse))
                     .toList
 
                 matches.foreach(log debug(_))
@@ -80,7 +86,11 @@ object Main {
     /**
      * NB Assumes: 1 line/statement - consider how to fix
      */
-    def check(contexts:Iterator[Context],className:String,cu:CompilationUnit,ast:AST, phi:SideCondition) = {
+    def check(contextIt:Iterator[Context],className:String,cu:CompilationUnit,ast:AST, phi:SideCondition) = {
+        val contexts = contextIt.filter(_.status).toList
+        if (contexts.isEmpty) {
+            throw new Exception("No Patterns Matched")
+        }
         // printf("contexts = %s",contexts.toList)
         // apply ast -> line number lookup and generate inverse
         val allValues = new HSet[(Map[String,Int],Context)]()
@@ -117,14 +127,22 @@ object Main {
     /**
      * Returns generated string from replacement with eclipse IR
      */
-    def rewrite(ast:AST,to:Stmt,context:Context,srcContents:String):String = {
+    def rewrite(ast:AST,to:Stmt,context:Context,srcContents:String,wildcards:List[List[Statement]]):String = {
+      log debug("nodes = {}",context.replaceNodes)
       val from  = context("_from")
       val rewriter = ASTRewrite.create(ast)
-      val gen = new ASTPatternGenerator(ast,rewriter,Map() ++context.values,true)
+      log debug("wildcards = {}",wildcards)
+      val gen = new ASTPatternGenerator(ast,rewriter,Map() ++context.values,true,wildcards)
       val doc = new Document(srcContents)
-      //println(from.getAST == ast)
-      //println(gen.generate(to).getAST == ast)
       rewriter.replace(from,gen.generate(to),null)
+
+      // Now remove other nodes matched
+      val nodes = context.replaceNodes - from
+      for(wc <- wildcards)
+        nodes ++= wc
+      for(node <- nodes)
+        rewriter.remove(node,null)
+
       val edit = rewriter.rewriteAST(doc,null)
       edit.apply(doc)
       val output = doc.get

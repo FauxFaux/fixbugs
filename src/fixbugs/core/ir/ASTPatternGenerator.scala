@@ -14,9 +14,11 @@ import scala.collection.mutable.{Map => MMap}
  * Generates Eclipse AST for replacement, from a fixbugs Pattern and a Context
  * 
  */
-class ASTPatternGenerator(ast:AST,rewrite:ASTRewrite, context:Map[String,ASTNode],init:Boolean) {
+class ASTPatternGenerator(ast:AST,rewrite:ASTRewrite, context:Map[String,ASTNode],init:Boolean,wildcards:List[List[IRStmt]]) {
   
   val con = MMap() ++ context.map({case (k,v) => (k,(v,init))})
+
+  var wildcardIndex = 0
 
   def get[X](name:String):X = {
       val (x,used) = con(name)
@@ -31,8 +33,16 @@ class ASTPatternGenerator(ast:AST,rewrite:ASTRewrite, context:Map[String,ASTNode
   /**
    * Generates Statements
    */
-  def generate(stmt:Stmt):IRStmt = { println(stmt); stmt match {
-    case Wildcard() => throw new Exception("Internal Error, cannot generate anything for a wildcard")
+  def generate(stmt:Stmt):ASTNode = { println(stmt); stmt match {
+    case Wildcard() => {
+        if (wildcardIndex >= wildcards.size) {
+            throw new Exception("Out of Index Wildcard Pattern: " + wildcardIndex)
+        } else {
+            val nodes = rewrite.createGroupNode(wildcards(wildcardIndex).toArray.asInstanceOf[Array[ASTNode]])
+            wildcardIndex += 1
+            nodes
+        }
+    }
     case Skip() => ast.newEmptyStatement
     case Label(_,_) => throw new Exception("Label Patterns aren't reconstructable")
     case StatementReference(metavar) => get(metavar)
@@ -52,8 +62,8 @@ class ASTPatternGenerator(ast:AST,rewrite:ASTRewrite, context:Map[String,ASTNode
     case IfElse(cond,thenBlock,elseBlock) => {
         val stmt = ast.newIfStatement
         stmt.setExpression(generate(cond))
-        stmt.setThenStatement(generate(thenBlock))
-        stmt.setElseStatement(generate(elseBlock))
+        stmt.setThenStatement(generate(thenBlock).asInstanceOf[IRStmt])
+        stmt.setElseStatement(generate(elseBlock).asInstanceOf[IRStmt])
         stmt
     }
     case Assert(cond) => {
@@ -84,13 +94,13 @@ class ASTPatternGenerator(ast:AST,rewrite:ASTRewrite, context:Map[String,ASTNode
     }
     case Do(body,cond) => {
         val stmt = ast.newDoStatement
-        stmt.setBody(generate(body))
+        stmt.setBody(generate(body).asInstanceOf[IRStmt])
         stmt.setExpression(generate(cond))
         stmt
     }
     case While(cond,body) => {
         val stmt = ast.newWhileStatement
-        stmt.setBody(generate(body))
+        stmt.setBody(generate(body).asInstanceOf[IRStmt])
         stmt.setExpression(generate(cond))
         stmt
     }
@@ -142,14 +152,14 @@ class ASTPatternGenerator(ast:AST,rewrite:ASTRewrite, context:Map[String,ASTNode
         decl.setName(get(id))
         val stmt = ast.newEnhancedForStatement
         stmt.setExpression(generate(expr))
-        stmt.setBody(generate(body))
+        stmt.setBody(generate(body).asInstanceOf[IRStmt])
         stmt.setParameter(decl)
         stmt
     }
     case For(init,cond,updaters,body) => {
         val stmt = ast.newForStatement
         stmt.setExpression(generate(cond))
-        stmt.setBody(generate(body))
+        stmt.setBody(generate(body).asInstanceOf[IRStmt])
         addExprs(stmt.initializers,init)
         addExprs(stmt.updaters,updaters)
         stmt
@@ -171,10 +181,10 @@ class ASTPatternGenerator(ast:AST,rewrite:ASTRewrite, context:Map[String,ASTNode
   }
   
   def addToStmt(stmt:{ def statements():java.util.List[_]},vals:List[Stmt]) = addStmts(stmt.statements,vals)
-  def addStmts(exprs:java.util.List[_],vals:List[Stmt]) = {
-    val argList = exprs.asInstanceOf[java.util.List[IRStmt]]
+  def addStmts(stmts:java.util.List[_],vals:List[Stmt]) = {
+    val argList = stmts.asInstanceOf[java.util.List[IRStmt]]
     for(arg <- vals)
-        argList.add(generate(arg))
+        argList.add(generate(arg).asInstanceOf[IRStmt])
   }
 
   /**
@@ -183,7 +193,14 @@ class ASTPatternGenerator(ast:AST,rewrite:ASTRewrite, context:Map[String,ASTNode
    */
   def generate(expr:Expression):IRExpr = expr match {
     case Metavar(name) => get(name)
-    case Method(name,args) => get(name)
+    case Method(inner,name,args) => get(name)
+    case NamedMethod(inner,name,args) => {
+        val expr = ast.newMethodInvocation
+        expr.setExpression(generate(inner))
+        expr.setName(ast.newSimpleName(name))
+        addArgs(expr,args)
+        expr
+    }
     case BinOp(l,r,op) => {
         val expr = ast.newInfixExpression
         expr.setLeftOperand(generate(l))

@@ -7,8 +7,10 @@ import org.eclipse.jdt.core.dom.PostfixExpression.{Operator => PostFixOp}
  * Pattern Matching for Java expressions
  */
 sealed abstract class Expression {}
+//case class Anything() extends Expression
 case class Metavar(name:String) extends Expression
-case class Method(name:String,args:List[Expression]) extends Expression
+case class Method(expr:Expression,name:String,args:List[Expression]) extends Expression
+case class NamedMethod(expr:Expression,name:String,args:List[Expression]) extends Expression
 case class BinOp(l:Expression,r:Expression,op:InfixOp) extends Expression
 case class UnOp(expr:Expression,op:PostFixOp) extends Expression
 case class Cast(expr:Expression,typee:TypePattern) extends Expression
