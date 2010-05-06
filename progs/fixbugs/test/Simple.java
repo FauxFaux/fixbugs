@@ -10,11 +10,16 @@ public class Simple {
 		for(int i = 0;i<10;i++) {
 			System.out.println(i);
 		}
-        if(x < y) {
-            System.out.println("Foo");
-        } else {
-            System.out.println("bar");
-        }
+		try {
+			if(x < y) {
+	            System.out.println("Foo");
+	        } else {
+	            System.out.println("bar");
+	        }
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		
 	}
 	
 }

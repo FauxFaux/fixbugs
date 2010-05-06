@@ -8,4 +8,5 @@ case class SNot(phi:SideCondition) extends SideCondition
 case class STrue() extends SideCondition
 case class SFalse() extends SideCondition
 case class Subtypes(parent:TypePattern,child:TypePattern) extends SideCondition
+case class Interface(name:String) extends SideCondition
 

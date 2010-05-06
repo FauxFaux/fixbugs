@@ -25,6 +25,8 @@ object ModelCheck {
     val cn = new ClassNode()
 	val cr = new ClassReader(file)
 	cr.accept(cn, 0);
+
+    val fieldTypes = TypeExtractor.lookupFieldTypes(cn)
     
     // foreach method: (messy conversion from java collections)
     var results = new MMap[String,ClosedEnvironment[Int]]
@@ -33,6 +35,7 @@ object ModelCheck {
         // extract cfg using asm
 	    val (succs,preds) = cfg(ControlFlowGraphAnalysis.getControlFlowGraph("fixbugs",mn))
 	    val lines = LineNumberExtractor.getLineNumberLookup(mn)
+        val varTypes = TypeExtractor.lookupVarTypes(mn)
 	    val nodes = Set() ++ lines
 
         // cross product the domain with the current value

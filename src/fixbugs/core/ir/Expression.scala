@@ -32,3 +32,4 @@ case class SimpType(name:String) extends TypePattern
 case class ArraType(typee:TypePattern) extends TypePattern
 // Matches whatever type is bound to context["name"]
 case class TypeMetavar(name:String) extends TypePattern
+

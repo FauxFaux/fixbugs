@@ -1,8 +1,7 @@
 
 Immediate:
     3 specs from paper
-            - type predicate
-            - subtype predicate
+            - type predicate - get names+type mappings from domain, and hook into eval
             - stmt predicate
         - lock/unlock
         - jdbc
@@ -23,7 +22,6 @@ context sensitive wildcards
 
 Next:
     Deal with multiple bytecode files
-    class predicates
 
 Small Delay:
     finish off adding all types
@@ -34,3 +32,4 @@ Small Delay:
 Big Delay:
     Alias Analysis?
     write tutorial
+    subtype predicate
