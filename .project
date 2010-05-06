@@ -25,6 +25,14 @@
 			<arguments>
 			</arguments>
 		</buildCommand>
+        <buildSpec>
+        <buildCommand>
+            <name>org.eclipse.jdt.core.javabuilder</name>
+            <arguments>
+            </arguments>
+        </buildCommand>
+        </buildSpec>
+
 	</buildSpec>
 	<natures>
 		<nature>ch.epfl.lamp.sdt.core.scalanature</nature>

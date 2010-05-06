@@ -1,8 +1,16 @@
 
 Immediate:
     3 specs from paper
-        - lock/unlock
+            - type predicate
             - subtype predicate
+            - stmt predicate
+        - lock/unlock
+        - jdbc
+            - boolean literals
+            - catch blocks
+        - List Synchronisation
+            - fix spec
+            - method predicate
 
     u calculus side conditions
         - eval

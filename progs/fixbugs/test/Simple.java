@@ -1,6 +1,8 @@
 package fixbugs.test;
 
 public class Simple {
+	
+	private static final long TestField = 0;
 
 	public static void main(String[] args) {
 		int x = 2;
