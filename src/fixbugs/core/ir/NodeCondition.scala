@@ -27,6 +27,7 @@ case class Not(phi:NodeCondition) extends NodeCondition
 case class NodePred(node:String) extends NodeCondition
 case class True() extends NodeCondition
 case class False() extends NodeCondition
+case class StmtPred(stmt:Statement) extends NodeCondition
 
 object NodeCondition {
   //  IR Generator crap

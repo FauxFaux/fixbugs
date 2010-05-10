@@ -1,5 +1,5 @@
 REPLACE
-    for (x;y;i++) ....
+    if (c) .... else ....
 WITH
     ;
 ALWAYS

@@ -9,6 +9,7 @@ import org.eclipse.jdt.core.dom.{Statement => IRStmt, Expression => IRExpr, Assi
 import fixbugs.core.ir.{Statement => Stmt,Expression => Expr,Assignment => Assign}
 import fixbugs.util.EclipseUtil.parse
 import scala.collection.mutable.{Map => MMap}
+import org.slf4j.{Logger,LoggerFactory}
 
 /**
  * Generates Eclipse AST for replacement, from a fixbugs Pattern and a Context
@@ -16,6 +17,8 @@ import scala.collection.mutable.{Map => MMap}
  */
 class ASTPatternGenerator(ast:AST,rewrite:ASTRewrite, context:Map[String,ASTNode],init:Boolean,wildcards:List[List[IRStmt]]) {
   
+  val log = LoggerFactory getLogger(this getClass)
+
   val con = MMap() ++ context.map({case (k,v) => (k,(v,init))})
 
   var wildcardIndex = 0
@@ -30,7 +33,14 @@ class ASTPatternGenerator(ast:AST,rewrite:ASTRewrite, context:Map[String,ASTNode
       }
   }
 
-  def makeGroup(stmts:List[ASTNode]) = rewrite.createGroupNode(stmts.toArray.asInstanceOf[Array[ASTNode]])
+  def makeGroup(stmts:List[ASTNode]) = {
+      log debug("making group from: {}",stmts)
+      if(stmts.isEmpty) {
+        ast.newEmptyStatement
+      } else {
+        rewrite.createGroupNode(stmts.toArray.asInstanceOf[Array[ASTNode]])
+      }
+  }
 
   def generateStatements(stmt:Stmt):ASTNode = stmt match {
     case SBlock(stmts) => makeGroup(stmts.map(generate(_)))
@@ -70,7 +80,8 @@ class ASTPatternGenerator(ast:AST,rewrite:ASTRewrite, context:Map[String,ASTNode
         val stmt = ast.newIfStatement
         stmt.setExpression(generate(cond))
         stmt.setThenStatement(generate(thenBlock).asInstanceOf[IRStmt])
-        stmt.setElseStatement(generate(elseBlock).asInstanceOf[IRStmt])
+        if(elseBlock != null)
+            stmt.setElseStatement(generate(elseBlock).asInstanceOf[IRStmt])
         stmt
     }
     case Assert(cond) => {
@@ -147,9 +158,21 @@ class ASTPatternGenerator(ast:AST,rewrite:ASTRewrite, context:Map[String,ASTNode
     case TryCatchFinally(tryB,catchB,finallyB) => {
         val stmt = ast.newTryStatement
         stmt.setBody(generateBlock(tryB))
-        // TODO: catch block
         val catches = stmt.catchClauses.asInstanceOf[java.util.List[CatchClause]]
-        stmt.setFinally(generateBlock(finallyB))
+        for(CatchClauseStmt(varName,exp,block) <- catchB) {
+            val catchClause = ast.newCatchClause
+            val svd = ast.newSingleVariableDeclaration
+            val varNameIR = ast.newSimpleName(varName)
+            log debug("adding name: {}",varName)
+            con += (varName -> (varNameIR,true))
+            svd.setName(varNameIR)
+            svd.setType(ast.newSimpleType(ast.newName(exp)))
+            catchClause.setException(svd)
+            catchClause.setBody(generateBlock(block))
+            catches.add(catchClause)
+        }
+        if(!finallyB.stmts.isEmpty)
+            stmt.setFinally(generateBlock(finallyB))
         stmt
     }
     case SBlock(stmts) => generateBlock(SBlock(stmts))
@@ -245,6 +268,16 @@ class ASTPatternGenerator(ast:AST,rewrite:ASTRewrite, context:Map[String,ASTNode
         val expr = ast.newArrayInitializer
         addExprs(expr.expressions,exprs)
         expr
+    }
+    case JavaLiteral(value) => {
+        if (value.equals("null"))
+            ast.newNullLiteral
+        else try {
+            ast.newBooleanLiteral(value.toBoolean)
+        } catch {
+            // yes - its a numberformatexception for a boolean
+            case e:NumberFormatException => ast.newNumberLiteral(value)
+        }
     }
   }
 

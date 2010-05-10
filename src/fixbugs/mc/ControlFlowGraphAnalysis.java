@@ -69,8 +69,11 @@ public class ControlFlowGraphAnalysis {
 			protected void newControlFlowEdge(int src, int dst) {
 				ControlFlowGraphNode s = (ControlFlowGraphNode) getFrames()[src];
 				ControlFlowGraphNode dest = (ControlFlowGraphNode) getFrames()[dst];
-				s.successors.add(dest);
-				dest.predecessors.add(s);
+                // TODO: check exceptional nodes
+                if(s != null && dest != null) {
+    				s.successors.add(dest);
+	    			dest.predecessors.add(s);
+                }
 			}
 			
 			@Override

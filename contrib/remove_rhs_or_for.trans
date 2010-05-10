@@ -3,12 +3,10 @@ PICK
         ::t x = l + r;
     WITH
         ::t x = l;
-    WHERE
-        True
+    ALWAYS
 OR
     REPLACE
         for (x;y;i++) ....
     WITH
         ;
-    WHERE
-        True
+    ALWAYS

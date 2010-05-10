@@ -105,6 +105,7 @@
         <javac
             srcdir="src"
             destdir="bin"
+            debug="true"
             classpathref="FixbugsPlugin.classpath" />
         <scalac srcdir="src"
             destdir="bin"

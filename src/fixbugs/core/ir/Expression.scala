@@ -9,6 +9,7 @@ import org.eclipse.jdt.core.dom.PostfixExpression.{Operator => PostFixOp}
 sealed abstract class Expression {}
 //case class Anything() extends Expression
 case class Metavar(name:String) extends Expression
+case class JavaLiteral(value:String) extends Expression
 case class Method(expr:Expression,name:String,args:List[Expression]) extends Expression
 case class NamedMethod(expr:Expression,name:String,args:List[Expression]) extends Expression
 case class BinOp(l:Expression,r:Expression,op:InfixOp) extends Expression

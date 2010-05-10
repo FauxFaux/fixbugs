@@ -2,18 +2,23 @@ package fixbugs.mc
 
 import fixbugs.core.ir.SideCondition
 import fixbugs.mc.sets._
-import org.objectweb.asm.ClassReader;
-import org.objectweb.asm.tree.ClassNode;
-import org.objectweb.asm.tree.MethodNode;
-import org.objectweb.asm.tree.AbstractInsnNode;
+import org.objectweb.asm.ClassReader
+import org.objectweb.asm.tree.ClassNode
+import org.objectweb.asm.tree.MethodNode
+import org.objectweb.asm.tree.AbstractInsnNode
 import scala.collection.mutable.{HashMap => MMap,Map}
 import java.io.FileInputStream
 import fixbugs.util.MapUtil.crossWith
+import collection.jcl.MapWrapper
 
 /**
  * Main entry point to the bytecode analysis component
  */
 object ModelCheck {
+
+  def conMap[X,Y](jm:java.util.Map[X,Y]):Map[X,Y] = Map() ++ new MapWrapper[X,Y]() {
+    def underlying = jm
+  }
 
   def check(className:String,phi:SideCondition,domain:ClosedDomain[Int]):Map[String,ClosedEnvironment[Int]] = {
     // refine IR
@@ -26,7 +31,7 @@ object ModelCheck {
 	val cr = new ClassReader(file)
 	cr.accept(cn, 0);
 
-    val fieldTypes = TypeExtractor.lookupFieldTypes(cn)
+    val fieldTypes = conMap(TypeExtractor.lookupFieldTypes(cn))
     
     // foreach method: (messy conversion from java collections)
     var results = new MMap[String,ClosedEnvironment[Int]]
@@ -35,16 +40,17 @@ object ModelCheck {
         // extract cfg using asm
 	    val (succs,preds) = cfg(ControlFlowGraphAnalysis.getControlFlowGraph("fixbugs",mn))
 	    val lines = LineNumberExtractor.getLineNumberLookup(mn)
-        val varTypes = TypeExtractor.lookupVarTypes(mn)
+        val varTypes = conMap(TypeExtractor.lookupVarTypes(mn))
 	    val nodes = Set() ++ lines
+        //val typeEnv = new TypeEnvironment(null,null,fieldTypes,varTypes)
 
         // cross product the domain with the current value
         // TODO: fix
         val completeDomain = domain //new SetClosedDomain[Int](crossWith(domain.allValues,"_current",nodes))
 	    
 	    // model check the method, and add the results
-	    val eval:Evaluator = new Eval(nodes,completeDomain,minimise(lines,succs),minimise(lines,preds))
-	    results += (mn.name -> eval.eval(psi))
+	    val eval:Evaluator = new Eval(null,nodes,completeDomain,minimise(lines,succs),minimise(lines,preds))
+	    results += (mn.name -> eval.eval(mn,psi))
     }
     results
   }

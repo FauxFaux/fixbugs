@@ -12,5 +12,5 @@ REPLACE {
          %" lock.unlock();
      }
 } WHERE
-     { E[F(u)] } @ l 
+     E[F(u)] | ¬A[F(u)] @ l
 

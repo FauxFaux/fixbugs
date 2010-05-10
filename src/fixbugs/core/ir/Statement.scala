@@ -15,7 +15,7 @@ case class StatementReference(lbl:String) extends Statement
 case class Assignment(typee:TypePattern,what:String,to:Expression) extends Statement
 case class IfElse(cond:Expression,trueBlock:Statement,falseBlock:Statement) extends Statement
 case class While(cond:Expression,body:Statement) extends Statement
-case class TryCatchFinally(tryBlock:SBlock,catchBlock:SBlock,finallyBlock:SBlock) extends Statement
+case class TryCatchFinally(tryBlock:SBlock,catchBlock:List[CatchClauseStmt],finallyBlock:SBlock) extends Statement
 case class SideEffectExpr(expr:Expression) extends Statement
 case class SBlock(stmts:List[Statement]) extends Statement {
     override def toString() = "{"+(stmts.foldLeft(new StringBuilder()){(acc,s) => acc.append("\n").append(s)}).toString+"\n}"
@@ -35,13 +35,15 @@ case class Assert(expr:Expression) extends Statement
 case class Constructor(exprs:List[Expression]) extends Statement
 case class SuperConstructor(exprs:List[Expression]) extends Statement
 
+case class CatchClauseStmt(varName:String,exception:String,stmts:SBlock)
+
 /**
  * Abbreviations for common patterns
  */
 object Statement {
   def WildBlock = SBlock(List(Wildcard()))
   def If(cond:Expression,trueBlock:SBlock) = IfElse(cond,trueBlock,WildBlock)
-  def TryCatch(tryBlock:SBlock,catchBlock:SBlock) = TryCatchFinally(tryBlock,catchBlock,WildBlock)
+  //def TryCatch(tryBlock:SBlock,catchBlock:SBlock) = TryCatchFinally(tryBlock,catchBlock,WildBlock)
   def WildLabel(lbl:String) = Label(lbl,Wildcard())
 }
 

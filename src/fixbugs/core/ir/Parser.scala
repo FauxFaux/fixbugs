@@ -41,15 +41,17 @@ object Parser extends StandardTokenParsers {
 
   lexical.delimiters ++= (operators ++ postfix ++ other).map(_.toString)
 
-  lexical.reserved += ("if","else","while","try","catch","finally",
+  lexical.reserved += ("if","if2","else","while","try","catch","finally",
     "return","throw","for","do","synchronized","switch","default",
     "case","break","continue","assert","this","super",
     // types
     "int","long","short","byte","float","double","char",
     // Side conditions
-    "F","G","X","U","true","True","false","False","is","A","E","and","or","not","mu","nu",
+    "F","G","X","U","true","True","false","False","is",
+    "A","E","and","or","not","mu","nu","type","raw","method",
+    "stmt",
     // Transformations and Strategies
-    "REPLACE","WITH","WHERE","ADD","METHOD","TO","THEN","DO","PICK","OR")
+    "REPLACE","WITH","WHERE","ADD","METHOD","TO","THEN","DO","PICK","OR","ALWAYS")
 
   def postFix:Parser[PostOp] = ("++" | "--") ^^ PostOp.toOperator
   def inFix:Parser[Op] = {
@@ -66,12 +68,11 @@ object Parser extends StandardTokenParsers {
     case (e~name~args) => NamedMethod(e,name,args)
   }
 
-    //case e~None~name~None~args => Method(e,name,args)
-    //case e~Some(x)~name~Some(y)~args => NamedMethod(e,name,args)
-    // case (e~(Some(x)~name)~Some(y)~args) => NamedMethod(e,name,args)
+  def raw = ("raw" ~> stringLit) ^^ {JavaLiteral(_)}
+
   def mv = ident ^^ {Metavar(_)}
 
-  def inner:Parser[Expression] = mv | method | namedMethod
+  def inner:Parser[Expression] = mv | method | namedMethod | raw
 
   def unary = inner ~ opt(postFix) ^^ (x => x match {
       case e~None => e
@@ -86,7 +87,8 @@ object Parser extends StandardTokenParsers {
   // definitions of type patterns
   def typedef = metaType | typeLit | primType
   def metaType = "::" ~> ident ^^ {TypeMetavar(_)}
-  def typeLit = "'" ~> (ident ^^ {SimpType(_)}) <~ "'"
+  def typeLit = stringLit ^^ {SimpType(_)}
+//"'" ~> (rep1sep(ident,".") ^^ {x => SimpType(x.reduceLeft{(x,acc) => x + "." + acc})}) <~ "'"
   def primType = ("int"|"long"|"short"|"byte"|"float"|"double"|"char") ^^ {PrimType(_)}
 
   def lb = (ident <~ ":") ~ statement ^^ { case l~s => Label(l,s) }
@@ -94,10 +96,16 @@ object Parser extends StandardTokenParsers {
   def skip = ";" ^^ { _ => Skip() }
   def ass = typedef ~ ident ~ ("=" ~> expression <~ ";") ^^ { case t~v~e => Assignment(t,v,e) }
   def ifelse = ("if"~>"("~>expression<~")")~statement~("else"~>statement) ^^ { case c~t~f => IfElse(c,t,f) }
+  def ifelse2 = ("if2"~>"("~>expression<~")")~statement ^^ { case c~t => IfElse(c,t,null) }
   def loop = ("while"~>"("~>expression<~")")~statement ^^ { case c~b => While(c,b) }
   //def tcf = ("try"~>block)~("catch"~>block)~("finally"~>block) ^^ {case t~c~f => TryCatchFinally(t,c,f) }
-  // TODO: deal with full tcf patterns
-  def tcf = ("try"~>block)~/*("catch"~>block)~*/("finally"~>block) ^^ {case t~f => TryCatchFinally(t,SBlock(List()),f) }
+  def tcf = ("try"~>block)~(catchh*)~opt("finally"~>block) ^^ {
+      case t~c~Some(f) => TryCatchFinally(t,c,f)
+      case t~c~None => TryCatchFinally(t,c,SBlock(Nil))
+  }
+  def catchh = (("catch" ~> "(" ~> stringLit) ~ (ident <~ ")") ~ block) ^^ {
+    case exp~id~b => CatchClauseStmt(id,exp,b)
+  }
   def see = expression <~ ";" ^^ { SideEffectExpr(_) }
   def block = "{" ~> statements <~ "}" ^^ { SBlock(_)}
   def returnStmt = "return" ~> expression <~ ";" ^^ {Return(_)}
@@ -126,7 +134,7 @@ object Parser extends StandardTokenParsers {
   def recons = "`" ~> ident <~ "`" ^^ { StatementReference(_) }
 
   def statement:Parser[Statement] =
-    lb | wc | ass | ifelse | loop | tcf | see | block |
+    lb | wc | ass | ifelse | ifelse2 | loop | tcf | see | block |
     returnStmt | throww | fors | doLoop | sync | switch | default |
     switchcase | break | continue | assert | cons | scons | skip | recons
 
@@ -149,15 +157,28 @@ object Parser extends StandardTokenParsers {
     "mu"~>ident~node ^^ {case i~n => Mu(i,n)} |
     "nu"~>ident~node ^^ {case i~n => Nu(i,n)} |
     "A"~>"[" ~> path <~"]" ^^ (All(_)) |
-    "E"~>"[" ~> path <~ "]" ^^ (Exists(_))
-  def _binary:Parser[NodeCondition] = _unary ~ opt(("^" | "|") ~ node) ^^ (x => x match {
+    "E"~>"[" ~> path <~ "]" ^^ (Exists(_)) |
+    ("stmt" ~> "(" ~> statement <~ ")") ^^ {StmtPred(_)} |
+    _inner
+  def _binary:Parser[NodeCondition] = rep1sep(_unary,"^") ^^ {_.reduceLeft({(x,acc)=>And(x,acc)})}
+
+  /*
+  _unary ~ opt(("^" | "|") ~ _binary) ^^ (x => x match {
     case in~None => in
     case l~Some("^"~r) => And(l,r)
     case l~Some("|"~r) => Or(l,r)
   })
+  def _binary:Parser[NodeCondition] = _unary ~ opt(("^" | "|") ~ _binary) ^^ (x => x match {
+    case in~None => in
+    case l~Some("^"~r) => And(l,r)
+    case l~Some("|"~r) => Or(l,r)
+  })
+  */
   def node:Parser[NodeCondition] = _binary
   
-  def $inner = "True" ^^ (_=>STrue()) | "False" ^^ (_=>SFalse())
+  def $inner = "True" ^^ (_=>STrue()) | "False" ^^ (_=>SFalse()) |
+    ("type" ~> ident) ~ ("is" ~> typedef) ^^ {case id~typ => TypePred(id,typ)} |
+    ("method" ~> stringLit) ^^ {MethodPred(_)}
   def $unary = $inner |
     "(" ~> side <~ ")" |
     ("{"~>node<~"}") ~ "@" ~ ident ^^ {case n~_~v => Satisfies(v,n)} |
@@ -171,8 +192,9 @@ object Parser extends StandardTokenParsers {
   def side:Parser[SideCondition] = $binary
   
   // Transformations
-  def replace = ("REPLACE"~> statement)~ ("WITH" ~> statement) ~ opt("WHERE" ~> side) ^^ {
-    case from~to~cond => Replace(from,to,cond.getOrElse(STrue()))
+  def replace = ("REPLACE"~> statement)~ ("WITH" ~> statement) ~ (("WHERE" ~> side)|"ALWAYS") ^^ {
+    case from~to~"ALWAYS" => Replace(from,to,STrue())
+    case from~to~cond => Replace(from,to,cond.asInstanceOf[SideCondition])
   }
 
   def vdecl = (typedef ~ mv) ^^ {case (t~i) => VDecl(t,i)}

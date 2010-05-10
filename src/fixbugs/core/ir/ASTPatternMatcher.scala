@@ -168,16 +168,35 @@ class ASTPatternMatcher {
         //println(checkType(stmt.getType,typee))
         checkType(stmt.getType,typee) && (() => unifyExpr(frag.getInitializer,to) & one(name,frag.getName))
       }
-      case (stmt:IfStatement,IfElse(cond,tb,fb)) =>
-        unifyExpr(stmt.getExpression,cond) & unifyStmt(stmt.getThenStatement(),tb) & unifyStmt(stmt.getElseStatement(),fb)
+      case (stmt:IfStatement,IfElse(cond,tb,fb)) => {
+        val always = unifyExpr(stmt.getExpression,cond) & unifyStmt(stmt.getThenStatement(),tb)
+        val pat = fb == null
+        val elseStmt = stmt.getElseStatement == null
+        if (pat && elseStmt)
+            always
+        else if (!pat && !elseStmt)
+            always & unifyStmt(stmt.getElseStatement(),fb)
+        else
+            c(false)
+      }
       case (stmt:WhileStatement,While(cond,body)) =>
         unifyExpr(stmt.getExpression,cond) & unifyStmt(stmt.getBody,body)
       case (stmt:DoStatement,Do(body,cond)) =>
         unifyExpr(stmt.getExpression,cond) & unifyStmt(stmt.getBody,body)
       case (stmt:TryStatement,TryCatchFinally(tryB,catchB,finallyB)) => {
-        // TODO: multiple catch clauses
-        val cath = stmt.catchClauses.get(0).asInstanceOf[CatchClause]
-        unifyStmt(stmt.getBody,tryB) & unifyStmt(cath.getBody,catchB) & unifyStmt(stmt.getFinally,finallyB)
+        var always = unifyStmt(stmt.getBody,tryB) & unifyStmt(stmt.getFinally,finallyB)
+        if(stmt.catchClauses.size != catchB.size)
+            c(false)
+        else if (catchB.isEmpty)
+            always
+        else {
+            val javaCatch = stmt.catchClauses.get(0).asInstanceOf[CatchClause]
+            val CatchClauseStmt(name,typee,block) = catchB.head
+            val exp = javaCatch.getException
+            always &= unifyStmt(javaCatch.getBody,block) & one(name,exp.getName)
+            always & c(exp.getType.toString.equals(typee))
+            // TODO: multiple catch clauses
+        }
       }
       case (stmt:LabeledStatement,pat) => unifyStmt(stmt.getBody,pat)
       case (stmt:ReturnStatement,Return(expr)) => unifyExpr(stmt.getExpression,expr)
@@ -278,6 +297,9 @@ class ASTPatternMatcher {
       case (expr:InstanceofExpression,InstanceOf(typee,inner)) =>
         checkType(expr.getRightOperand,typee) && (()=>unifyExpr(expr.getLeftOperand,inner))
       case (expr:ArrayInitializer,ArrayInit(exprs)) => unifyExprs(expr.expressions,exprs)
+      case (expr:BooleanLiteral,JavaLiteral(value)) => c(value.toBoolean == expr.booleanValue)
+      case (expr:NumberLiteral,JavaLiteral(value)) => c(value.equals(expr.getToken))
+      case (expr:NullLiteral,JavaLiteral(value)) => c(value.equals("null"))
         
       case _ => c(false)
     }

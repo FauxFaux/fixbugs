@@ -2,14 +2,17 @@
 Immediate:
     3 specs from paper
             - type predicate - get names+type mappings from domain, and hook into eval
+            - /*and type lock is 'java.util.concurrent.locks.Lock'*/
+                - Generalise domains and cast to Int for line numbers
+                - rework type comparator to use domains/environments
             - stmt predicate
+                - pattern matching
+                - test: stmt indices and rewriting
         - lock/unlock
+            - Add marker node for outbound exceptions
         - jdbc
-            - boolean literals
-            - catch blocks
         - List Synchronisation
             - fix spec
-            - method predicate
 
     u calculus side conditions
         - eval
@@ -22,6 +25,10 @@ context sensitive wildcards
 
 Next:
     Deal with multiple bytecode files
+    Test with multiple methods
+    Add new stuff to kindchecker
+        - stmt,NamedMethod, mu, ADD METHOD, Strategies
+        - check no ident can be 'stmtN' where N is a number
 
 Small Delay:
     finish off adding all types
@@ -33,3 +40,7 @@ Big Delay:
     Alias Analysis?
     write tutorial
     subtype predicate
+    Testing Web Page
+        - try to compile resulting code
+    Nested Block Pattern Matching
+

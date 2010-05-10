@@ -66,8 +66,11 @@ object Main {
                 val cu = parser.createAST(null).asInstanceOf[CompilationUnit]
                 val ast = cu.getAST
 
+                log debug("java program parsed.")
+
                 // compiles the source code and pattern match the source
                 val compiled = Eval.compile(name,srcContents)
+                log debug("java program compiled.")
                 val matcher = new ASTPatternMatcher
                 val matches = check(matcher.unifyAll(cu,from),compiled.get(0),cu,ast,phi)
                 // generate replacement programs
@@ -86,11 +89,13 @@ object Main {
     /**
      * NB Assumes: 1 line/statement - consider how to fix
      */
-    def check(contextIt:Iterator[Context],className:String,cu:CompilationUnit,ast:AST, phi:SideCondition) = {
+    def check(contextIt:Iterator[Context],className:String,cu:CompilationUnit,ast:AST, psi:SideCondition) = {
         val contexts = contextIt.filter(_.status).toList
         if (contexts.isEmpty) {
             throw new Exception("No Patterns Matched")
         }
+        val (predStmts,phi) = StatementExtractor.get(psi)
+
         // printf("contexts = %s",contexts.toList)
         // apply ast -> line number lookup and generate inverse
         val allValues = new HSet[(Map[String,Int],Context)]()

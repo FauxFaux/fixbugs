@@ -49,7 +49,7 @@ object KindChecker {
         case Assignment(typee,name,expr) => Env(name -> StatementKind()) ++ aggType(typee) ++ aggExpr(expr)
         case IfElse(cond,then,otherwise) => aggExpr(cond) ++ aggStmt(then) ++ aggStmt(otherwise)
         case While(cond,body) => aggExpr(cond) ++ aggStmt(body)
-        case TryCatchFinally(tri,catc,finall) => aggStmt(tri) ++ aggStmt(catc) ++ aggStmt(finall)
+        case TryCatchFinally(tri,catc,finall) => aggStmt(tri) ++ /*aggStmt(catc) ++ */ aggStmt(finall)
         case SideEffectExpr(expr) => aggExpr(expr)
         case SBlock(stmts) => aggStmts(stmts)
         case Return(expr) => aggExpr(expr)
@@ -72,7 +72,7 @@ object KindChecker {
 
     def aggExpr(e:Expression):env = e match {
         case Metavar(name) => Env(name -> ExpressionKind())
-        case Method(_,args) => aggExprs(args)
+        case Method(_,_,args) => aggExprs(args)
         case BinOp(l,r,_) => aggExpr(l) ++ aggExpr(r)
         case UnOp(expr,_) => aggExpr(expr)
         case Cast(expr,_) => aggExpr(expr)

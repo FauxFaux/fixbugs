@@ -1,0 +1,26 @@
+
+
+REPLACE {
+     ....
+     %" conn.setAutoCommit(raw'false');
+     ....
+  c: %" conn.commit();
+} WITH {
+     try {
+         ....
+         %" conn.setAutoCommit(raw'false');
+         ....
+         %" conn.commit();
+     } catch ('java.sql.SQLException' e) {
+         if2 (conn != raw'null') {
+            try {
+                %" conn.rollback();
+            } catch ('java.sql.SQLException' e) {
+                %" e.printStackTrace();
+            }
+         }
+     }
+} WHERE
+    method 'main'
+
+// WHERE type conn is ’java.sql.Connection’ and ¬EF(stmt(conn.rollback();)) @ c
