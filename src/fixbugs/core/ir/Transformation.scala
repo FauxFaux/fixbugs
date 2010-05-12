@@ -9,3 +9,5 @@ case class Replace(from:Statement,to:Statement,cond:SideCondition) extends Trans
 case class AddMethod(ret:VDecl,args:List[VDecl],stmts:List[Statement],named:Metavar,cond:SideCondition) extends Transformation
 case class Then(trans:List[Transformation]) extends Transformation
 case class Pick(trans:List[Transformation]) extends Transformation
+
+

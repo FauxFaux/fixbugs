@@ -1,37 +1,18 @@
 
 Immediate:
-    3 specs from paper
-        - lock/unlock
-            - /*and type lock is 'java.util.concurrent.locks.Lock'*/
-            - Add marker node for outbound exceptions
-            
-            - safety side condition
-        - jdbc
-        - List Synchronisation
-            - fix spec
-
-    u calculus side conditions
+    mu calculus side conditions
         - eval
-    actions
-        ADD METHOD type metavar( type metavar, ... ) statement TO metavar WHERE
-            - implement in main
     more extensive side condition testing
 
-context sensitive wildcards
-
 Next:
-    Deal with multiple bytecode files
-    Test with multiple methods
-    Add new stuff to kindchecker
-        - stmt,NamedMethod, mu, ADD METHOD, Strategies
-        - check no ident can be 'stmtN' where N is a number
-
-Next + 1:
-    finish off adding all types
     license code
     move all debug output to logging
-    Prefix Operators
     generate vim stuff from scala parser
+
+Reliability
+    Deal with multiple bytecode files
+    Test with multiple methods
+    context sensitive wildcards
 
 Future:
     Alias Analysis?
@@ -40,4 +21,16 @@ Future:
     Testing Web Page
         - try to compile resulting code
     Nested Block Pattern Matching
+    actions
+        ADD METHOD type name( type metavar, ... ) statement TO metavar WHERE
+            - implement in main
+    finish off adding all types
 
+Specifications:
+    - lock/unlock
+        - /*and type lock is 'java.util.concurrent.locks.Lock'*/
+        - Add marker node for outbound exceptions
+        - safety side condition
+    - jdbc
+    - List Synchronisation
+        - fix spec

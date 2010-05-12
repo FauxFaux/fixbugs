@@ -1,6 +1,8 @@
 package fixbugs.core.ir
 import scala.collection.mutable.{Map => MMap,HashMap}
 
+import scala.util.matching.Regex
+
 /**
  * Simple properties are checked:
  * A metavariable must be either Expression or Statement or Type kind
@@ -12,6 +14,9 @@ import scala.collection.mutable.{Map => MMap,HashMap}
 object KindChecker {
 
     val banned = List("_from")
+
+    val StmtMatch = "(stmt\\d+)".r
+
     type env = MMap[String,Kind]
     def Env():env = 
         new HashMap[String,Kind]() {
@@ -28,18 +33,33 @@ object KindChecker {
         }
     def Env(args:(String,Kind)):env = Env() + args
 
-    def check(t:Transformation) = {
-        val Replace(from,to,cond) = t
-        val (fromEnv,toEnv) = (aggStmt(from),aggStmt(to))
-        
-        val names = Set() ++ toEnv.keys ++ fromEnv.keys
-        if (names contains "_from")
-            throw new KindCheckingException("You may not use '_from' as a variable name")
+    def check(t:Transformation):Unit = t match {
+        case Replace(from,to,cond) => {
+            val (fromEnv,toEnv) = (aggStmt(from),aggStmt(to))
+            
+            val names = Set() ++ toEnv.keys ++ fromEnv.keys
+            if (names contains "_from")
+                throw new KindCheckingException("You may not use '_from' as a variable name")
+            for(n <- names) {
+                n match {
+                    case StmtMatch(x) => throw new KindCheckingException(x + "is an invalid variable name")
+                    case _ => ()
+                }
+            }
 
-        val unbound = (Set() ++ toEnv.keys) -- (Set() ++ fromEnv.keys)
-        if (! unbound.isEmpty)
-            throw new KindCheckingException("The following variables are unbound (ie used in replacement, but not creation: "+unbound)
-        ()
+            val unbound = (Set() ++ toEnv.keys) -- (Set() ++ fromEnv.keys)
+            if (! unbound.isEmpty)
+                throw new KindCheckingException("The following variables are unbound (ie used in replacement, but not creation: "+unbound)
+            ()
+        }
+        case Then(transformations) => {
+            for(t <- transformations)
+                check(t)
+        }
+        case Pick(transformations) => {
+            for(t <- transformations)
+                check(t)
+        }
     }
 
     def aggStmts(stmts:List[Statement]):env = stmts.map(aggStmt).foldLeft(Env()){_ ++ _}
@@ -49,7 +69,9 @@ object KindChecker {
         case Assignment(typee,name,expr) => Env(name -> StatementKind()) ++ aggType(typee) ++ aggExpr(expr)
         case IfElse(cond,then,otherwise) => aggExpr(cond) ++ aggStmt(then) ++ aggStmt(otherwise)
         case While(cond,body) => aggExpr(cond) ++ aggStmt(body)
-        case TryCatchFinally(tri,catc,finall) => aggStmt(tri) ++ /*aggStmt(catc) ++ */ aggStmt(finall)
+        case TryCatchFinally(tri,catc,finall) => catc
+            .map({case CatchClauseStmt(_,_,stmts) => aggStmt(stmts)})
+            .foldLeft(aggStmt(tri) ++ aggStmt(finall)) {_ ++ _}
         case SideEffectExpr(expr) => aggExpr(expr)
         case SBlock(stmts) => aggStmts(stmts)
         case Return(expr) => aggExpr(expr)
@@ -72,17 +94,20 @@ object KindChecker {
 
     def aggExpr(e:Expression):env = e match {
         case Metavar(name) => Env(name -> ExpressionKind())
-        case Method(_,_,args) => aggExprs(args)
+        case Method(expr,name,args) => aggExpr(expr) ++ Env(name -> ExpressionKind()) ++ aggExprs(args)
+        case NamedMethod(expr,_,args) => aggExpr(expr) ++ aggExprs(args)
         case BinOp(l,r,_) => aggExpr(l) ++ aggExpr(r)
         case UnOp(expr,_) => aggExpr(expr)
         case Cast(expr,_) => aggExpr(expr)
         case New(_,args) => aggExprs(args)
         case ArrayInit(args) => aggExprs(args)
         case InstanceOf(_,expr) => aggExpr(expr)
+        case JavaLiteral(_) => Env()
     }
 
     def aggType(t:TypePattern):env = t match {
         case TypeMetavar(name) => Env(name -> TypeKind())
+        case ArraType(inner) => aggType(inner)
         case _ => Env()
     }
     
