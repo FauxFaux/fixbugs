@@ -1,0 +1,6 @@
+REPLACE
+    ::t x = l;
+WITH
+    ::t x = raw"null";
+WHERE
+    type x is 'java.lang.Object'

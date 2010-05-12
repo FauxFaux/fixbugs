@@ -3,37 +3,93 @@ package fixbugs.mc;
 import fixbugs.core.ir._
 import fixbugs.mc.sets._
 import org.objectweb.asm.Type
-import scala.collection.mutable.{Map => MMap}
+import org.eclipse.jdt.core.dom.{Type => EclipseType,PrimitiveType,ArrayType,SimpleType,QualifiedType,Name}
+//import scala.collection.mutable.{Map => MMap}
 import org.slf4j.{Logger,LoggerFactory}
 
-case class TypeEnvironment (mvNames:MMap[String,String],mvTypes:MMap[String,TypePattern],fields:Map[String,Type],vars:Map[String,Type])
-
+/**
+ * Holds information about field and local variable types for a given method
+ * This is extracted from the bytecode
+ */
+case class TypeEnvironment (fields:Map[String,Type],vars:Map[String,Type])
 
 /**
  * Implements the type and interface predicates
+ * Finds satisfying bindings from a given Binding
+ * Note - 1 instance per method
  */
-class TypeComparator(env:TypeEnvironment) {
+class TypeComparator(typeEnv:TypeEnvironment) {
 
-    val log = LoggerFactory getLogger(Main getClass)
+    val log = LoggerFactory getLogger(this getClass)
 
-    def typePred(metavar:String,pattern:TypePattern) = {
+    def typePred(metavar:String,pattern:TypePattern,env:Map[String,Any]) = {
         log debug ("type(%s,%s)".format(metavar,pattern))
-        val varName = env.mvNames(metavar)
-        val madeType = makeType(pattern)
-        env.vars(varName).equals(madeType) || env.fields(varName).equals(madeType)
+        val mapVal = env(metavar)
+        //log debug (mapVal.asInstanceOf[Object].getClass.getName)
+        if(mapVal.isInstanceOf[Name]) {
+            val varName = mapVal.asInstanceOf[Name].getFullyQualifiedName
+            makeType(pattern,env) match {
+                case Some(madeType) => {
+                    if (typeEnv.vars.contains(varName)) typeEnv.vars(varName).equals(madeType)
+                    else typeEnv.fields.contains(varName) && typeEnv.fields(varName).equals(madeType)
+                }
+                case None => {
+                    log debug ("\tImpossible to construct pattern: ",pattern)
+                    false
+                }
+            }
+        } else {
+            log debug ("\tincorrect metavar type for {}",metavar)
+            false
+        }
     }
 
-    def makeType(pattern:TypePattern):Type = pattern match {
-        case PrimType("int") => Type.INT_TYPE
-        case PrimType("long") => Type.LONG_TYPE
-        case PrimType("short") => Type.SHORT_TYPE
-        case PrimType("byte") => Type.BYTE_TYPE
-        case PrimType("boolean") => Type.BOOLEAN_TYPE
+    /**
+     * Builds instances of an asm type from a TypePattern and environment
+     */
+    def makeType(pattern:TypePattern,env:Map[String,Any]):Option[Type] = pattern match {
+        case PrimType("int") => Some(Type.INT_TYPE)
+        case PrimType("long") => Some(Type.LONG_TYPE)
+        case PrimType("short") => Some(Type.SHORT_TYPE)
+        case PrimType("byte") => Some(Type.BYTE_TYPE)
+        case PrimType("boolean") => Some(Type.BOOLEAN_TYPE)
         case PrimType(x) => throw new Error(x + "hasn't been implemented yet for type")
-        case SimpType(name) => Type.getType("L" + ("name".replace(".","/")))
-        case ArraType(innerType) => Type.getType("["+makeType(innerType).getDescriptor)
-        case TypeMetavar(mv) => makeType(env.mvTypes(mv))
+
+        case SimpType(name) => Some(Type.getType(toDescriptor(name)))
+        case ArraType(innerType) => makeType(innerType,env).map(toArray(_))
+        case TypeMetavar(mv) => {
+            val maybeType = env(mv)
+            if (maybeType.isInstanceOf[EclipseType])
+                Some(convertType(maybeType.asInstanceOf[EclipseType]))
+            else
+                None
+        }
     }
+
+    /**
+     * Converts from eclipse types to ASM Types
+     */
+    def convertType(eclipse:EclipseType):Type = eclipse match {
+        case e:PrimitiveType => e.getPrimitiveTypeCode match {
+            case PrimitiveType.BOOLEAN => Type.BOOLEAN_TYPE
+            case PrimitiveType.BYTE => Type.BYTE_TYPE
+            case PrimitiveType.CHAR => Type.CHAR_TYPE
+            case PrimitiveType.DOUBLE => Type.DOUBLE_TYPE
+            case PrimitiveType.FLOAT => Type.FLOAT_TYPE
+            case PrimitiveType.INT => Type.INT_TYPE
+            case PrimitiveType.LONG => Type.LONG_TYPE
+            case PrimitiveType.SHORT => Type.SHORT_TYPE
+            case PrimitiveType.VOID => Type.VOID_TYPE
+        }
+        case e:SimpleType => Type.getType(toDescriptor(e.toString))
+        case e:QualifiedType => Type.getType(toDescriptor(e.toString))
+        case e:ArrayType => toArray(convertType(e.getComponentType))
+    }
+    
+    // Utility Methods
+
+    def toDescriptor(className:String):String = "L" + className.replace(".","/") + ";"
+    def toArray(t:Type):Type = Type.getType("["+t.getDescriptor)
     
 //    def hasInterface(metavar:String,pattern:String) = {}
 

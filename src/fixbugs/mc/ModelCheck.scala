@@ -7,20 +7,24 @@ import org.objectweb.asm.tree.ClassNode
 import org.objectweb.asm.tree.MethodNode
 import org.objectweb.asm.tree.AbstractInsnNode
 import scala.collection.mutable.{HashMap => MMap,Map}
+import scala.collection.immutable.{Map => IMap}
 import java.io.FileInputStream
 import fixbugs.util.MapUtil.crossWith
 import collection.jcl.MapWrapper
+import org.slf4j.{Logger,LoggerFactory}
 
 /**
  * Main entry point to the bytecode analysis component
  */
 object ModelCheck {
 
-  def conMap[X,Y](jm:java.util.Map[X,Y]):Map[X,Y] = Map() ++ new MapWrapper[X,Y]() {
+  val log = LoggerFactory getLogger(ModelCheck getClass)
+
+  def conMap[X,Y](jm:java.util.Map[X,Y]):IMap[X,Y] = IMap() ++ new MapWrapper[X,Y]() {
     def underlying = jm
   }
 
-  def check(className:String,phi:SideCondition,domain:ClosedDomain[Int]):Map[String,ClosedEnvironment[Int]] = {
+  def check(className:String,phi:SideCondition,domain:ClosedDomain[Any]):Map[String,ClosedEnvironment[Any]] = {
     // refine IR
     val psi = Refiner.refineSide(phi)
     
@@ -34,7 +38,7 @@ object ModelCheck {
     val fieldTypes = conMap(TypeExtractor.lookupFieldTypes(cn))
     
     // foreach method: (messy conversion from java collections)
-    var results = new MMap[String,ClosedEnvironment[Int]]
+    var results = new MMap[String,ClosedEnvironment[Any]]
     for(val i <- 0 to cn.methods.size()-1) {
         val mn = cn.methods.get(i).asInstanceOf[MethodNode]
         // extract cfg using asm
@@ -42,14 +46,16 @@ object ModelCheck {
 	    val lines = LineNumberExtractor.getLineNumberLookup(mn)
         val varTypes = conMap(TypeExtractor.lookupVarTypes(mn))
 	    val nodes = Set() ++ lines
-        //val typeEnv = new TypeEnvironment(null,null,fieldTypes,varTypes)
 
         // cross product the domain with the current value
         // TODO: fix
         val completeDomain = domain //new SetClosedDomain[Int](crossWith(domain.allValues,"_current",nodes))
+        
+        val typeEnv = new TypeEnvironment(fieldTypes,varTypes)
 	    
 	    // model check the method, and add the results
-	    val eval:Evaluator = new Eval(null,nodes,completeDomain,minimise(lines,succs),minimise(lines,preds))
+	    val eval:Evaluator = new Eval(typeEnv,nodes,completeDomain,minimise(lines,succs),minimise(lines,preds))
+        log debug ("calling eval for method: {} with types {}",mn.name,typeEnv)
 	    results += (mn.name -> eval.eval(mn,psi))
     }
     results
@@ -57,9 +63,11 @@ object ModelCheck {
  
   def convert[X](from:java.util.Set[X]):Set[X] = {
     var s = Set[X]()
-    val it = from.iterator
-    while(it.hasNext)
-        s = s + it.next
+    if(from != null) {
+        val it = from.iterator
+        while(it.hasNext)
+            s = s + it.next
+    }
     s
   }
 
@@ -79,8 +87,11 @@ object ModelCheck {
     }*/
 
     for (i <- 0 to nodes.length-1) {
-      succs += (i -> convert(nodes(i).successors).map(nodes.indexOf(_)))
-      preds += (i -> convert(nodes(i).predecessors).map(nodes.indexOf(_)))
+      // TODO: check this
+      if(nodes(i) != null) {
+          succs += (i -> convert(nodes(i).successors).map(nodes.indexOf(_)))
+          preds += (i -> convert(nodes(i).predecessors).map(nodes.indexOf(_)))
+      }
     }
     
     //printf("cfg = %s\n",(succs,preds))

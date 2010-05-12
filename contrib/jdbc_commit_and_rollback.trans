@@ -21,6 +21,8 @@ REPLACE {
          }
      }
 } WHERE
-    method 'main'
+    { stmt(::t x = raw'1';) } @ m
+
+//    method 'main'
 
 // WHERE type conn is ’java.sql.Connection’ and ¬EF(stmt(conn.rollback();)) @ c

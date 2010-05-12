@@ -18,7 +18,9 @@ class SetClosedEnvironment[V](initialValues:Set[Map[String,V]],factory:SetClosed
     def restrictKeyTo(key:String,within:Set[V]) = newWith(values.filter(x => within contains x(key)))
     
     def copy:ClosedEnvironment[V] = newWith(values.map(x => Map() ++ x))
-    
+
+    def filter(f:((Map[String,V])=>Boolean)):ClosedEnvironment[V] = newWith(values.filter(f))
+
     /**
      * NB: Inefficient
      */

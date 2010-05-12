@@ -9,15 +9,16 @@ import org.objectweb.asm.tree.MethodNode
 case class Node(lineNumber:Int){}
 
 trait Evaluator {
-  def eval(mc:MethodNode,nc:SideCondition):ClosedEnvironment[Int]
+  def eval(mc:MethodNode,nc:SideCondition):ClosedEnvironment[Any]
 }
 
-class Eval(typeEnv:TypeEnvironment,nodes:Set[Int],domain:ClosedDomain[Int],succ:MMap[Int,Set[Int]],pred:MMap[Int,Set[Int]]) extends Evaluator {
+class Eval(typeEnv:TypeEnvironment,iNodes:Set[Int],domain:ClosedDomain[Any],succ:MMap[Int,Set[Int]],pred:MMap[Int,Set[Int]]) extends Evaluator {
 
     val log = LoggerFactory getLogger(this getClass)
 
-	val imPred = Map() ++ pred
-	val imSucc = Map() ++ succ
+	val imPred = (Map() ++ pred).asInstanceOf[Map[Any,Set[Any]]]
+	val imSucc = (Map() ++ succ).asInstanceOf[Map[Any,Set[Any]]]
+    val nodes = iNodes.asInstanceOf[Set[Any]]
     val types = new TypeComparator(typeEnv)
 	
 	// entry points are nodes with no predecessors
@@ -29,7 +30,7 @@ class Eval(typeEnv:TypeEnvironment,nodes:Set[Int],domain:ClosedDomain[Int],succ:
     // converts boolean predicate to domains
     def pred(p:Boolean) = if (p) domain.all() else domain.none()
 
-    def eval(mc:MethodNode,sc:SideCondition):ClosedEnvironment[Int] = sc match {
+    def eval(mc:MethodNode,sc:SideCondition):ClosedEnvironment[Any] = sc match {
         case SFalse() => domain.none()
         case STrue() => domain.all()
         case SAnd(l,r) => eval(mc,l) intersect eval(mc,r)
@@ -38,11 +39,18 @@ class Eval(typeEnv:TypeEnvironment,nodes:Set[Int],domain:ClosedDomain[Int],succ:
         case Satisfies(name,phi) => domain.all()
         // TODO: nc should be domain with current
         // eval(phi).equalByKey(name,"_current")
-        case TypePred(name,pattern) => pred(types.typePred(name,pattern))
+        case TypePred(name,pattern) => {
+            log debug ("encountered TypePred for variable: "+name)
+            domain.all().filter(x => {
+                val res = types.typePred(name,pattern,x)
+                log debug ("result of {} is {}",x,res)
+                res
+            })
+        }
         case MethodPred(nameStr) => pred(mc.name.equals(nameStr))
     }
 
-    def eval(nc:NodeCondition):ClosedEnvironment[Int] = {
+    def eval(nc:NodeCondition):ClosedEnvironment[Any] = {
 		nc match {
             case False() => domain.none()
             case True() => domain.all()
@@ -76,7 +84,7 @@ class Eval(typeEnv:TypeEnvironment,nodes:Set[Int],domain:ClosedDomain[Int],succ:
     /**
      * Loop to compute fixed point 
      */
-    def loop(init:ClosedEnvironment[Int],iter:ClosedEnvironment[Int]) = {
+    def loop(init:ClosedEnvironment[Any],iter:ClosedEnvironment[Any]) = {
       // initially init 
       var values = init
       var prev = values

@@ -16,6 +16,7 @@ trait ClosedEnvironment[V] {
     def restrictKeyTo(key:String,values:Set[V]):ClosedEnvironment[V]
     def mapKey[T](key:String,f:Map[V,Set[V]]):ClosedEnvironment[V]
     def copy:ClosedEnvironment[V]
+    def filter(f:((Map[String,V])=>Boolean)):ClosedEnvironment[V]
     
     def negate():ClosedEnvironment[V] = domain.all().difference(this)
     def allValues():Set[Map[String,V]]

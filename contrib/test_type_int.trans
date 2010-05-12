@@ -1,0 +1,6 @@
+REPLACE
+    ::t x = l;
+WITH
+    ::t x = raw'1';
+WHERE
+    type x is int

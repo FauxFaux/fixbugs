@@ -7,17 +7,19 @@ import java.util.Map;
 
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.Type;
-import org.objectweb.asm.tree.ClassNode;
-import org.objectweb.asm.tree.FieldNode;
-import org.objectweb.asm.tree.LocalVariableNode;
-import org.objectweb.asm.tree.MethodNode;
+import org.objectweb.asm.tree.*;
+import org.objectweb.asm.*;
+import org.objectweb.asm.commons.EmptyVisitor;
 
 @SuppressWarnings("unchecked")
 public class TypeExtractor {
 
+    //public static Logger log = LoggerFactory.getLogger(TypeExtractor.class);
+
 	public static Map<String, Type> lookupFieldTypes(final ClassNode cn) {
 		final Map<String, Type> values = new HashMap<String, Type>();
 		final List fields = cn.fields;
+        //log.debug("fields = {}",fields);
 		if(fields != null) {
 			final Iterator fieldIt = fields.iterator();
 			while(fieldIt.hasNext()) {
@@ -31,6 +33,9 @@ public class TypeExtractor {
 	public static Map<String,Type> lookupVarTypes(final MethodNode mn) {
 		final Map<String, Type> values = new HashMap<String, Type>();
 		final List variables = mn.localVariables;
+        //VariableVisitor vv = new VariableVisitor();
+        //mn.accept(vv);
+        //log.debug("variables = {}",variables);
 		if(variables != null) {
 			final Iterator varIt = variables.iterator();
 			while(varIt.hasNext()) {
@@ -42,7 +47,7 @@ public class TypeExtractor {
 	}
 	
 	public static void main(String[] args) throws Exception {
-		final String className = "fixbugs.test.Simple";
+		final String className = "fixbugs.test.TestIntType";
 		final ClassNode cn = new ClassNode();
 		final ClassReader cr = new ClassReader(className);
 		cr.accept(cn, 0);
@@ -56,3 +61,28 @@ public class TypeExtractor {
 	}
 	
 }
+
+/*
+class VariableVisitor extends MethodAdapter {
+
+//    public final List<
+
+    public VariableVisitor() {
+        super(new EmptyVisitor());
+    }
+
+    @Override
+    public void visitLocalVariable(String name, String desc, String signature, Label start, Label end, int index) {
+        System.out.println("visited: "+name);
+    }
+
+    public void visitMaxs(int maxStack,int maxLocals) {
+        System.out.println("fFFFFFFFFFFFFFFUUUUUUUU"+maxStack+" "+maxLocals);
+    }
+
+    public void visitEnd() {
+        System.out.println("vv done");
+    }
+
+
+}*/

@@ -14,6 +14,7 @@ import fixbugs.util.Eval
 import scala.collection.mutable.{HashMap => HMap,HashSet => HSet,Map => MMap}
 import org.slf4j.{Logger,LoggerFactory}
 import org.apache.log4j.BasicConfigurator;
+import scala.collection.jcl.MutableIterator.Wrapper
 
 /**
  * Main entry point to the fixbugs system
@@ -90,30 +91,43 @@ object Main {
      * NB Assumes: 1 line/statement - consider how to fix
      */
     def check(contextIt:Iterator[Context],className:String,cu:CompilationUnit,ast:AST, psi:SideCondition) = {
-        val contexts = contextIt.filter(_.status).toList
-        if (contexts.isEmpty) {
+        val normContexts = contextIt.filter(_.status).toList
+        if (normContexts.isEmpty) {
             throw new Exception("No Patterns Matched")
         }
-        val (predStmts,phi) = StatementExtractor.get(psi)
+        
+        log debug("Normal Contexts = {}",normContexts)
 
-        // printf("contexts = %s",contexts.toList)
+        // Deal with stmt predicates and cross product with matches
+        val (predStmts,phi) = StatementExtractor.get(psi)
+        val matcher = new ASTPatternMatcher
+        val stmtMatches = predStmts.flatMap(x => matcher.unifyAll(cu,x).toList).toList
+        val contexts =  if (stmtMatches.isEmpty) normContexts
+                        else normContexts.flatMap(x => stmtMatches.map(_ & x)).filter(_.status).toList
+
+        log debug("Producted Contexts = {}",contexts)
+
+        //stmtMatches.foreach(log debug ("stmtMatches = {}",_))
+
         // apply ast -> line number lookup and generate inverse
-        val allValues = new HSet[(Map[String,Int],Context)]()
+        val allValues = new HSet[(Map[String,Any],Context)]()
         contexts.foreach(con => {
-            val valuation = new HMap[String,Int]()
+            val valuation = new HMap[String,Any]()
             for((k,v) <- con.values) {
-                // 
-                if(v.isInstanceOf[ASTNode] && ! v.isInstanceOf[PrimitiveType]) {
-                    printf("v = %s, start = %s, line = %s\n ",v,v.getStartPosition, cu.getLineNumber(v.getStartPosition))
+                // Change to line numbers if its a statement, otherwise don't
+                // Old: v.isInstanceOf[ASTNode] && ! v.isInstanceOf[PrimitiveType]
+                if(v.isInstanceOf[Stmt]) {
+                    //printf("v = %s, start = %s, line = %s\n ",v,v.getStartPosition, cu.getLineNumber(v.getStartPosition))
                     valuation += (k -> cu.getLineNumber(v.getStartPosition))
                 } else {
-                    log debug("Non-Statement: {}", v.getClass.getName)
+                    valuation += (k -> v)
+                    //log debug("Non-Statement: {}", v.getClass.getName)
                 }
             }
-            allValues += ((Map[String,Int]() ++ valuation,con))
+            allValues += ((Map[String,Any]() ++ valuation,con))
         })
 
-        val domain = new SetClosedDomain(Set[Map[String,Int]]() ++ allValues.map({case (nums,nodes) => nums}))
+        val domain = new SetClosedDomain(Set[Map[String,Any]]() ++ allValues.map({case (nums,nodes) => nums}))
         log debug ("domain = {}",domain)
 
         // do model check, we don't care about methods atm, and converts back to collections from ClosedEnvironment[Int]

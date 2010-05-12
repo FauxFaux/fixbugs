@@ -16,7 +16,7 @@ public class JDBCTest {
         conn.setAutoCommit(false);
 
         Statement st = conn.createStatement();
-
+        int x = 1;
         /*try {
           ResultSet rs = st.executeQuery(query);
           while (rs.next()) {

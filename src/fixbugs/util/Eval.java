@@ -58,7 +58,7 @@ public class Eval {
 		try {
 			final CompilationTask task = compiler.getTask(
 					out, ifm,
-					null, Arrays.asList("-d",tmpDir), null,
+					null, Arrays.asList("-g", "-d",tmpDir), null,
 					Arrays.asList(new JavaSourceFromString(name,src)));
 			
 			if (task.call()) {

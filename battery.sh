@@ -14,5 +14,7 @@ do_test () {
 #do_test "progs/fixbugs/test/Simple.java" "contrib/remove_if.trans"
 
 #do_test "progs/fixbugs/test/LockTest.java" "contrib/ensure_lock_release.trans"
-do_test "progs/fixbugs/test/JDBCTest.java" "contrib/jdbc_commit_and_rollback.trans"
+#do_test "progs/fixbugs/test/JDBCTest.java" "contrib/jdbc_commit_and_rollback.trans"
+#do_test "progs/fixbugs/test/TestIntType.java" "contrib/test_type_int.trans"
+do_test "progs/fixbugs/test/TestObjType.java" "contrib/test_type_obj.trans"
 

@@ -1,15 +1,11 @@
 
 Immediate:
     3 specs from paper
-            - type predicate - get names+type mappings from domain, and hook into eval
-            - /*and type lock is 'java.util.concurrent.locks.Lock'*/
-                - Generalise domains and cast to Int for line numbers
-                - rework type comparator to use domains/environments
-            - stmt predicate
-                - pattern matching
-                - test: stmt indices and rewriting
         - lock/unlock
+            - /*and type lock is 'java.util.concurrent.locks.Lock'*/
             - Add marker node for outbound exceptions
+            
+            - safety side condition
         - jdbc
         - List Synchronisation
             - fix spec
@@ -30,13 +26,14 @@ Next:
         - stmt,NamedMethod, mu, ADD METHOD, Strategies
         - check no ident can be 'stmtN' where N is a number
 
-Small Delay:
+Next + 1:
     finish off adding all types
     license code
     move all debug output to logging
     Prefix Operators
+    generate vim stuff from scala parser
 
-Big Delay:
+Future:
     Alias Analysis?
     write tutorial
     subtype predicate
