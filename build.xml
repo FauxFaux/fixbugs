@@ -10,6 +10,7 @@
     <path id="scala.classpath">
         <pathelement location="${scala.home}/lib/scala-compiler.jar" />
         <pathelement location="${scala.home}/lib/scala-library.jar" />
+        <pathelement location="${scala.home}/lib/jline.jar" />
     </path>
     <taskdef resource="scala/tools/ant/antlib.xml">
       <classpath refid="scala.classpath"/>
@@ -130,5 +131,9 @@
             <arg path="${c}"/>
             <sysproperty key="log4j.configuration" value="${log4j.loc}" />
         </java>
+    </target>
+    <target name="testcp" >
+        <property name="myclasspath" refid="FixbugsPlugin.classpath" />
+        <echo message="${myclasspath}" />
     </target>
 </project>

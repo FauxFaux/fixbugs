@@ -1,13 +1,10 @@
 
 Immediate:
-    mu calculus side conditions
-        - eval
     more extensive side condition testing
 
 Next:
-    license code
     move all debug output to logging
-    generate vim stuff from scala parser
+    write tutorial
 
 Reliability
     Deal with multiple bytecode files
@@ -16,15 +13,18 @@ Reliability
 
 Future:
     Alias Analysis?
-    write tutorial
     subtype predicate
-    Testing Web Page
-        - try to compile resulting code
     Nested Block Pattern Matching
     actions
         ADD METHOD type name( type metavar, ... ) statement TO metavar WHERE
             - implement in main
     finish off adding all types
+    write vim syntax hilighting stuff
+    Testing Web Page
+        - FixBin
+        - try to compile resulting code
+    mu calculus side conditions
+        - eval
 
 Specifications:
     - lock/unlock
