@@ -124,7 +124,6 @@ class ASTPatternMatcher {
             log debug("Hit Base match in block")
             c(false)
         }
-        //case _ => println(stmts,pattern); throw new Exception("Debug Error")
 	  })
       log debug ("Block Res: %s for %d and %d".format(res.status,stmts.size,pattern.size))
       res
@@ -182,10 +181,8 @@ class ASTPatternMatcher {
       
       case (stmt:ExpressionStatement,SideEffectExpr(expr)) => unifyExpr(stmt.getExpression,expr)
       case (stmt:VariableDeclarationStatement,Assign(typee,name,to)) => {
-        //println(stmt)
         // TODO: multiple declarations
         val frag = stmt.fragments.get(0).asInstanceOf[VariableDeclarationFragment]
-        //println(checkType(stmt.getType,typee))
         checkType(stmt.getType,typee) && (() => unifyExpr(frag.getInitializer,to) & one(name,frag.getName))
       }
       case (stmt:IfStatement,IfElse(cond,tb,fb)) => {

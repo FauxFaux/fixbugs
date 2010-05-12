@@ -49,7 +49,6 @@ object ModelCheck {
     val psi = Refiner.refineSide(phi)
     
     // extract line numbers
-    //println(className);
     val file = new FileInputStream(className)
     val cn = new ClassNode()
 	val cr = new ClassReader(file)
@@ -98,14 +97,6 @@ object ModelCheck {
     val succs = new MMap[Int,Set[Int]]
     val preds = new MMap[Int,Set[Int]]
 
-    /*for (i <- 0 to nodes.length-1) {
-        println(nodes(i).successors)
-        val it = nodes(i).successors.iterator
-        while(it.hasNext()) {
-            println(nodes.indexOf(it.next()))
-        }
-    }*/
-
     for (i <- 0 to nodes.length-1) {
       // TODO: check this
       if(nodes(i) != null) {
@@ -114,7 +105,6 @@ object ModelCheck {
       }
     }
     
-    //printf("cfg = %s\n",(succs,preds))
     (succs,preds)
   }
   
@@ -124,7 +114,6 @@ object ModelCheck {
    */
   // TODO: remove cycles
   def minimise(lines:Array[Int],cfg:MMap[Int,Set[Int]]) = {
-    //println(cfg)
     cfg.transform((k,v) => v.map(x => lines(x)))
     val acc = new MMap[Int,Set[Int]]
     cfg.foreach(x => {
@@ -133,7 +122,6 @@ object ModelCheck {
       val toAcc = acc.getOrElse(srcLine,Set())
       acc += (srcLine -> (toAcc ++ to - srcLine))
     })
-    //printf("acc = %s\n",acc)
     acc
   }
   

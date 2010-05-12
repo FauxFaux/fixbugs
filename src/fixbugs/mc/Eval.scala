@@ -93,7 +93,6 @@ class Eval(typeEnv:TypeEnvironment,iNodes:Set[Int],domain:ClosedDomain[Any],succ
               // there must be a path where phi holds true at every step
               val phis = eval(phi)
               // initial: phis that are exit points 
-              //println("GLOBAL"+phi)
               loop(phis.restrictKeyTo("_current",exit),phis)
             }
             
@@ -108,16 +107,12 @@ class Eval(typeEnv:TypeEnvironment,iNodes:Set[Int],domain:ClosedDomain[Any],succ
       // initially init 
       var values = init
       var prev = values
-      //println(iter.allValues.map(x => x("current")))
-      //println(init.allValues.map(x => x("current")))
       do {
         prev = values.copy
-        //println(values.allValues.map(x => x("current")))
         
         // iteratively add predecessors that are in iter
         values = values union (values.mapKey("_current",imPred) intersect iter)
       } while(prev != values)
-      //println("Loop returning: "+values.allValues.map(x => x("current")))
       values
     }
 

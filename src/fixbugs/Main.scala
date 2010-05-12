@@ -137,7 +137,6 @@ object Main {
                 // Change to line numbers if its a statement, otherwise don't
                 // Old: v.isInstanceOf[ASTNode] && ! v.isInstanceOf[PrimitiveType]
                 if(v.isInstanceOf[Stmt]) {
-                    //printf("v = %s, start = %s, line = %s\n ",v,v.getStartPosition, cu.getLineNumber(v.getStartPosition))
                     valuation += (k -> cu.getLineNumber(v.getStartPosition))
                 } else {
                     valuation += (k -> v)

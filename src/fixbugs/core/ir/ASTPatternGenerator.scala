@@ -70,7 +70,7 @@ class ASTPatternGenerator(ast:AST,rewrite:ASTRewrite, context:Map[String,ASTNode
   /**
    * Generates Statements
    */
-  def generate(stmt:Stmt):ASTNode = { println(stmt); stmt match {
+  def generate(stmt:Stmt):ASTNode = { stmt match {
     case Wildcard() => {
         if (wildcardIndex >= wildcards.size) {
             throw new Exception("Out of Index Wildcard Pattern: " + wildcardIndex)
@@ -83,11 +83,6 @@ class ASTPatternGenerator(ast:AST,rewrite:ASTRewrite, context:Map[String,ASTNode
     case Skip() => ast.newEmptyStatement
     case Label(_,_) => throw new Exception("Label Patterns aren't reconstructable")
     case StatementReference(metavar) => get(metavar)
-    /*{
-        val x = get(metavar)
-        println(x)
-        x 
-    }*/
     case Assignment(typee,what,init) => {
         val assign = ast.newVariableDeclarationFragment
         assign.setInitializer(generate(init))
