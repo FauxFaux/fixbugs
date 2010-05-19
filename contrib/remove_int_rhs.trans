@@ -1,0 +1,5 @@
+REPLACE
+    int x = l + r;
+WITH
+    int x = l;
+ALWAYS

@@ -1,0 +1,252 @@
+%\documentclass{report}
+\documentclass[final,twoside,12pt]{article}
+\usepackage{fullpage,a4wide}
+\usepackage{listings}
+\newcommand{\fixbugs}{{\emph{Fixbugs} }}
+\newcommand{\java}{{\tt java} }
+\newcommand{\replace}{{\tt replace ... with} }
+%\newcommand{\vbar}{\|}
+
+\lstset {
+    language=java,
+    numbers=left,
+    numberstyle=\footnotesize,
+    frame=single
+}
+
+\author{Richard Warburton\\richard.warburton@gmail.com}
+\title{\fixbugs Tutorial}
+
+\begin{document}
+\maketitle
+\tableofcontents
+\newpage
+
+\section{Introduction}
+\fixbugs is a program for applying automated transformations to source level
+\java programs.  It uses a domain specific language in order to describe these
+transformations.  This document is aimed for people who want to understand the
+\fixbugs language and use it in their programming projects.  You should learn
+how to specific your transformations and how to use the tool in order to automatically
+apply these transformations.  The transformations can be used for a variety of 
+tasks for example bug fixing, refactoring and semantic patches.  If you have a messy
+legacy \java codebase we're here to help you out.
+
+The source code for \fixbugs can be downloaded from its launchpad project at
+https://launchpad.net/fixbugs.  In order to download the source code you will need the
+{\tt bzr} revision control system.  The README file in the distribution explains
+how to compile and run \fixbugs.
+
+The irc channel is \#fixbugs on irc.oftc.net.  Questions are welcome.
+
+\section{Pattern Matching}
+Pattern Matching is fundamental to the nature of \fixbugs.  It is the basic tool with
+which one transforms programs.  Our pattern matching construct - \replace - takes a statement
+and replace it with another statement.  The patterns themselves are modelled after \java syntax,
+since this is what we are transforming.  Note that all transformations are based on first
+order abstract syntax, so whitespace doesn't matter.
+
+Metavariables in \fixbugs match against fragments of abstract syntax, and can be referred to in
+the replacement rule.  This way blocks of the program can be referred to in the replacement rules,
+and patterns can be generalised easily.  Section \ref{sec:side-conditions} describes how they can be
+used in order to make semantic comparisons using temporal logic and certain predicates.
+
+We begin with some simple example statements, the following removes any variable assignment:
+
+\lstinputlisting{../contrib/removeVars.trans}
+
+The {\tt ::t} statement at the beginning pattern matches any type as the meta-variable {\tt t}.
+{\tt x} matches the name of the variable, whilst {\tt rhs} matches anything on the right hand side.
+This is replaced with a {\tt ;} statement, ie a skip.  Later on we shall use more complex side conditions,
+but this specification is applied {\tt ALWAYS}, thus its appearance at the end of the replacement statement.
+
+We can narrow the matched statements by the type of the assignment, and also the expression on the right hand side.
+We can also use the bound metavariables in constructing a new statement.  For example, here is a replacement rule
+that substitutes any integer assignment by its left hand side:
+
+\lstinputlisting{../contrib/remove_int_rhs.trans}
+
+The general idea can be extrapolated to many different types of statement, and their associated syntactic patterns,
+for example here we remove any {\tt for} statements that iterate on increments within a program:
+
+\lstinputlisting{../contrib/remove_for.trans}
+
+The {\tt x} and {\tt y} metavariables bind to the opening statements within the {\tt for} loop, whilst
+{\tt i++} ensures that only loops that involve a syntactic increment are matched.  A new concept here
+is that of the wildcard: {\tt ....} which matches any statement.  This is a useful construct that is
+used here to ensure that any {\tt for} loops - either single statement or with a block for a body are matched.
+
+block matching
+
+multiple matches
+
+\section{Side Conditions}
+\label{sec:side-conditions}
+
+In this section we shall be increasing the expressiveness of our specifications by using side conditions
+that may enable or disable them.  The side conditions are written in a variant of temporal logic that is
+also described.  So far you have only seen the keyword {\tt ALWAYS} at the end of your patterns, from now
+on we shall be replacing it with {\tt WHERE} and a logical statement.  {\tt ALWAYS} is equivalent to
+{\tt WHERE True}.
+
+Another way in which we shall be extending basic patterns is by using labels.  Labels are a way of marking
+a statement matched by a pattern.  These statement labels can then be referred to within a side condition.
+In the following fragment the metavariable {\tt n} is bound to any assignment statement.
+
+\begin{lstlisting}
+    n: ::t x = rhs;
+\end{lstlisting}
+
+\subsection{Logic}
+
+For the following couple of sections we shall be simply be talking about fragments of \fixbugs syntax that
+are used as side conditions, ie after {\tt WHERE}.  You can see how these fit together into full specifications
+in Section \ref{sec:side-egs}.  The building blocks of our side conditions are those of first order logic.
+Consequently the logical constructs {\tt True}, {\tt False}, {\tt and}, {\tt or} and {\tt not} are used with their
+usual semantics.  Here are some valid Fragments:
+
+\begin{lstlisting}
+    True
+    not False
+    True and False
+    not (not False or not True)
+\end{lstlisting}
+
+In addition to these constructs we also allow a temporal condition, that can hold true at a specific statement.
+This is specified by the following general form:
+
+\begin{lstlisting}
+    { temporal-condition } @ node
+\end{lstlisting}
+
+Here {\tt node} is a metavariable that has been pattern matched, for example by using a label.  We describe
+temporal conditions henceforth.  This statement holds true $iff$ the temporal condition holds true at the
+given node.
+
+\subsection{Temporal Conditions}
+
+NB: in order to differentiate between logical operators that can be used both in the temporal and non-temporal
+conditions we choose to give them different syntax, rather than overload.  In the different situations they mean
+subtley different things, but from most user's points of views that can be ignored.  Here is a table of the corresponding
+terms:
+
+\begin{eqnarray}
+\nonumber {\tt Side Condition} & {\tt Temporal Condition} \\
+\nonumber {\tt True} & {\tt true} \\
+\nonumber {\tt False} & {\tt false} \\
+\nonumber {\tt and} & \wedge \\
+\nonumber {\tt or} & \mid \\
+\nonumber {\tt not} & {\tt !}
+\end{eqnarray}
+
+We base our temporal logic on Computational Tree Logic, consequently our temporal-conditions hold true if a path
+statement holds true over a path.  We quantify this by stating that they either hold true over all paths, or
+that there exists some path where they hold true.  The syntax for these respectively is:
+
+\begin{lstlisting}
+    A [ path-condition ]
+    E [ path-condition ]
+\end{lstlisting}
+
+There are then four path operators for describing how a node condition holds over a given path:
+
+\begin{tabular}{|l|l|}
+\hline
+Fragment & Fragment holds true iff ... \\
+\hline
+{\tt X condition} & condition holds true in the next statement \\
+{\tt F condition} & condition holds true at some point in the future \\
+{\tt G condition} & condition holds true at every point in the future \\
+{\tt condition1 U condition2} & condition1 holds true at every point until condition2 holds true \\
+\hline
+\end{tabular}
+\\
+\\
+\\
+Consequently the following are all valid temporal conditions:
+\\
+\begin{lstlisting}
+    A [ X true ]
+    E [ F false ]
+    E [ G false | true ]
+    A [ (false | true) U E [ X true ] ]
+\end{lstlisting}
+
+\subsection{Useful Predicates}
+
+Its obviously quite useless to have all this temporal quantification if we only use {\tt true} and {\tt false} as
+our base statements.  Consequently we also have several predicates that are built into \fixbugs and can be used
+in logical conditions.  Predicates can either be local or global - local predicates are used within temporal conditions,
+and global predicates within side conditions.
+
+{\tt node} is a local predicate that takes one argument, that being a metavariable that binds to a node, and
+holds true at the node and false otherwise.  Consequently "{\tt { node(x) } @ x}" is a tautology.
+
+{\tt stmt} takes a statement pattern as an argument and holds true when the current statement matches that pattern.
+It is a local predicate.  The statement patterns are identical to those used in {\tt REPLACE} statements.
+
+{\tt type} is a predicate that takes two arguments: a string representing a type pattern and a metavariable that binds to
+a variable name.  If the type of \java variable referred to by the metavariable matches the type pattern then the type
+predicate holds.
+
+{\tt method} is a predicate that allow one to pattern match the name of the method that surrounds the current node.  This
+can be especially useful when working with interfaces such as {\tt Runnable} where there is a named method, {\tt run} which
+has a specific meaning.
+
+\subsection{Examples}
+\label{sec:side-egs}
+
+\section{Advanced Usage}
+
+So far we have only covered the {\tt REPLACE} action - here we discuss strategies and also a few more advanced transformations.
+
+\subsection{Strategies}
+
+A Strategy is a operator that allows us to combine transformations.  A Strategy applied to transformations also becomes a
+transformation, so they can be combined arbitrarily.
+
+\subsubsection{DO}
+
+The {\tt DO} Strategy has the following overall structure:
+
+\begin{lstlisting}
+DO
+    transformation1
+AND
+    transformation2
+AND
+    transformation3
+...
+\end{lstlisting}
+
+It sequentially applies {\tt transformation1} and then {\tt transformation2} and then {\tt transformation3} etc.
+The minimum number of transformations to apply is two.  The variable bindings are disjoint between the transformations.
+If One transformation fail to apply then its successors also fail.
+
+\subsubsection{PICK}
+
+The {\tt PICK} strategy is similar to the {\tt DO} strategy, except that instead of sequentially combing its inner
+transformations, it provides a non-deterministic choice between its components.  This is useful for accounting for different
+syntactic forms that some component within a transformation may take.  For example doing one thing on the main branch of
+an {\tt if} statement, and another thing on the {\tt else} branch.
+
+%\subsection{More Actions}
+
+\section{Miscellaneous}
+
+\subsection{Bug Reports}
+
+Bug reports are welcome and can be filled online at https://bugs.launchpad.net/fixbugs.
+
+\subsection{Contributing}
+
+\fixbugs is written in a mixture of {\tt scala} and \java.
+Patches can either be filed on the bug tracker, or emailed personally to me.  Additionally
+a {\tt bzr} repository that can be publically pulled from is a perfectly acceptable approach
+to submitting a patch.
+
+% \section{Complete Syntax Pattern Listings}
+% TODO
+
+\end{document}
+

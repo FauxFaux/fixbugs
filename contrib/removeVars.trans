@@ -1,0 +1,5 @@
+REPLACE
+    ::t x = rhs;
+WITH
+    ;
+ALWAYS

@@ -5,6 +5,7 @@ Immediate:
 
 Next:
     write tutorial
+    Finish README
 
 Reliability
     Deal with multiple bytecode files
@@ -26,6 +27,8 @@ Future:
         - try to compile resulting code
     mu calculus side conditions
         - eval
+    macros and/or functions?
+    mavenise dependancies
 
 Specifications:
     - lock/unlock

@@ -1,6 +1,11 @@
 
 Dependancies:
 
+The following have known working versions in the lib/ folder:
+
 Scala
 ScalaCheck ( http://code.google.com/p/scalacheck/)
 ASM
+slf4j and an slf4j backend (for example log3j)
+
+Additionally you will need an eclipse JEE install.
