@@ -12,6 +12,7 @@ public class Simple {
         }
         int x = 2;
 		int y = x + 3;
+        int z = 4;
 		for(int i = 0;i<10;i++) {
 			System.out.println(i);
 		}
@@ -20,7 +21,7 @@ public class Simple {
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
-		
+		long finalVar = 2l;
 	}
 	
 }

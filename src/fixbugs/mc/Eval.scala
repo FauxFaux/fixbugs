@@ -25,6 +25,7 @@ import fixbugs.mc.sets._
 import scala.collection.mutable.{Map => MMap}
 import org.slf4j.{Logger,LoggerFactory}
 import org.objectweb.asm.tree.MethodNode
+import fixbugs.util.MapUtil.crossWith
 
 case class Node(lineNumber:Int){}
 
@@ -32,7 +33,7 @@ trait Evaluator {
   def eval(mc:MethodNode,nc:SideCondition):ClosedEnvironment[Any]
 }
 
-class Eval(typeEnv:TypeEnvironment,iNodes:Set[Int],domain:ClosedDomain[Any],succ:MMap[Int,Set[Int]],pred:MMap[Int,Set[Int]]) extends Evaluator {
+class Eval(typeEnv:TypeEnvironment,iNodes:Set[Int],dom:ClosedDomain[Any],succ:MMap[Int,Set[Int]],pred:MMap[Int,Set[Int]]) extends Evaluator {
 
     val log = LoggerFactory getLogger(this getClass)
 
@@ -47,6 +48,8 @@ class Eval(typeEnv:TypeEnvironment,iNodes:Set[Int],domain:ClosedDomain[Any],succ
 	// exit points are nodes with no successors
 	val exit = nodes -- imSucc.keys
 
+    var domain = dom
+
     // converts boolean predicate to domains
     def pred(p:Boolean) = if (p) domain.all() else domain.none()
 
@@ -56,9 +59,15 @@ class Eval(typeEnv:TypeEnvironment,iNodes:Set[Int],domain:ClosedDomain[Any],succ
         case SAnd(l,r) => eval(mc,l) intersect eval(mc,r)
         case SOr(l,r) => eval(mc,l) union eval(mc,r)
         case SNot(phi) => eval(mc,phi).negate()
-        case Satisfies(name,phi) => domain.all()
+        case Satisfies(name,phi) => {
+            val oldDomain = domain
+            domain = new SetClosedDomain[Any](crossWith(domain.allValues,"_current",nodes))
+            val res = eval(phi)
+            domain = oldDomain
+            log debug ("satisifes, name = {}, res = {}",name,(Map() ++ res.allValues).foldLeft(""){(x,acc)=>acc+"\n"+x})
+            res.equalByKey(name,"_current")
+        }
         // TODO: nc should be domain with current
-        // eval(phi).equalByKey(name,"_current")
         case TypePred(name,pattern) => {
             log debug ("encountered TypePred for variable: "+name)
             domain.all().filter(x => {

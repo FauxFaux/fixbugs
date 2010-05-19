@@ -1,0 +1,6 @@
+REPLACE
+    n:  ::t x = l + r;
+WITH
+    ::t x = l;
+WHERE
+    { E [X stmt(::t z = y;) ] } @ n

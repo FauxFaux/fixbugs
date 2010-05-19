@@ -180,7 +180,8 @@ object Parser extends StandardTokenParsers {
     "E"~>"[" ~> path <~ "]" ^^ (Exists(_)) |
     ("stmt" ~> "(" ~> statement <~ ")") ^^ {StmtPred(_)} |
     _inner
-  def _binary:Parser[NodeCondition] = rep1sep(_unary,"^") ^^ {_.reduceLeft({(x,acc)=>And(x,acc)})}
+  def _and = rep1sep(_unary,"^") ^^ {_.reduceLeft({(x,acc)=>And(x,acc)})}
+  def _binary:Parser[NodeCondition] = rep1sep(_and,"|") ^^ {_.reduceLeft({(x,acc)=>Or(x,acc)})}
 
   /*
   _unary ~ opt(("^" | "|") ~ _binary) ^^ (x => x match {

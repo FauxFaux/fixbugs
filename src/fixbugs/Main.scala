@@ -26,7 +26,6 @@ import org.eclipse.jdt.core.dom._
 import org.eclipse.jdt.core.dom.rewrite._
 import org.eclipse.jface.text.Document
 import fixbugs.core.ir.{Statement => Stmt,_}
-//ASTPatternMatcher,ASTPatternGenerator,Context,Replace,Then,Transformation,SideCondition}
 import fixbugs.core.ir.Parser._
 import fixbugs.mc.ModelCheck
 import fixbugs.mc.sets.SetClosedDomain
@@ -92,7 +91,7 @@ object Main {
                 // compiles the source code and pattern match the source
                 val compiled = Eval.compile(name,srcContents)
                 log debug("java program compiled.")
-                val matcher = new ASTPatternMatcher
+                val matcher = new ASTPatternMatcher(true)
                 val matches = check(matcher.unifyAll(cu,from),compiled.get(0),cu,ast,phi)
                 // generate replacement programs
                     .map(con => rewrite(ast,to,con,srcContents,matcher.wildcards.reverse))
@@ -120,7 +119,7 @@ object Main {
 
         // Deal with stmt predicates and cross product with matches
         val (predStmts,phi) = StatementExtractor.get(psi)
-        val matcher = new ASTPatternMatcher
+        val matcher = new ASTPatternMatcher(false)
         val stmtMatches = predStmts.flatMap(x => matcher.unifyAll(cu,x).toList).toList
         val contexts =  if (stmtMatches.isEmpty) normContexts
                         else normContexts.flatMap(x => stmtMatches.map(_ & x)).filter(_.status).toList
@@ -130,32 +129,38 @@ object Main {
         //stmtMatches.foreach(log debug ("stmtMatches = {}",_))
 
         // apply ast -> line number lookup and generate inverse
-        val allValues = new HSet[(Map[String,Any],Context)]()
+        val allValues = new HSet[(MMap[String,Any],Context)]()
         contexts.foreach(con => {
             val valuation = new HMap[String,Any]()
             for((k,v) <- con.values) {
                 // Change to line numbers if its a statement, otherwise don't
                 // Old: v.isInstanceOf[ASTNode] && ! v.isInstanceOf[PrimitiveType]
-                if(v.isInstanceOf[Stmt]) {
+                if(v.isInstanceOf[Statement]) {
                     valuation += (k -> cu.getLineNumber(v.getStartPosition))
                 } else {
                     valuation += (k -> v)
-                    //log debug("Non-Statement: {}", v.getClass.getName)
+                    log debug("Non-Statement: {}", v.getClass.getName)
                 }
             }
-            allValues += ((Map[String,Any]() ++ valuation,con))
+            allValues += ((valuation,con))
         })
 
-        val domain = new SetClosedDomain(Set[Map[String,Any]]() ++ allValues.map({case (nums,nodes) => nums}))
+        val domain = new SetClosedDomain(Set() ++ allValues.map({case (nums,nodes) => Map() ++ nums}))
         log debug ("domain = {}",domain)
 
         // do model check, we don't care about methods atm, and converts back to collections from ClosedEnvironment[Int]
-        val results = ModelCheck.check(className,phi,domain).values.flatMap(_.allValues.elements).toList.removeDuplicates
+        val results = ModelCheck.check(className,phi,domain)
+            .values.flatMap(_.allValues.elements)
+            .map(_ - "_current")
+            .toList.removeDuplicates
         log debug ("results= {}",results)
 
         // convert back from line numbers to contexts
         val checked = allValues
-            .filter({case (nums,nodes) => results contains nums})
+            .filter({case (nums,nodes) => {
+                log debug ("nums = {}",nums)
+                results contains nums
+            }})
             .map({case (nums,nodes) => nodes})
 
         checked.foreach(log debug("checked: {}",_))

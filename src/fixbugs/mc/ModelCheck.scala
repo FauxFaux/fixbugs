@@ -58,7 +58,7 @@ object ModelCheck {
     
     // foreach method: (messy conversion from java collections)
     var results = new MMap[String,ClosedEnvironment[Any]]
-    for(val i <- 0 to cn.methods.size()-1) {
+    for (val i <- 0 to cn.methods.size()-1) {
         val mn = cn.methods.get(i).asInstanceOf[MethodNode]
         // extract cfg using asm
 	    val (succs,preds) = cfg(ControlFlowGraphAnalysis.getControlFlowGraph("fixbugs",mn))
@@ -66,9 +66,7 @@ object ModelCheck {
         val varTypes = conMap(TypeExtractor.lookupVarTypes(mn))
 	    val nodes = Set() ++ lines
 
-        // cross product the domain with the current value
-        // TODO: fix
-        val completeDomain = domain //new SetClosedDomain[Int](crossWith(domain.allValues,"_current",nodes))
+        val completeDomain = domain
         
         val typeEnv = new TypeEnvironment(fieldTypes,varTypes)
 	    

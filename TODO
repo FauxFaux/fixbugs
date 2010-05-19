@@ -1,15 +1,16 @@
 
 Immediate:
-    more extensive side condition testing
+    Fix Silhouetting
+     - Totally compress the nodes
 
 Next:
-    move all debug output to logging
     write tutorial
 
 Reliability
     Deal with multiple bytecode files
     Test with multiple methods
     context sensitive wildcards
+    Test the field enabling/disabling scenario
 
 Future:
     Alias Analysis?
@@ -34,3 +35,4 @@ Specifications:
     - jdbc
     - List Synchronisation
         - fix spec
+

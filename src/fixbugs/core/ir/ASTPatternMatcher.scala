@@ -36,8 +36,10 @@ import org.slf4j.{Logger,LoggerFactory}
  * Proceeds recursively:
  * unify(node,ir,context) returns a true iff the node is unifiable with the ir and updates the environment if so
  * 
+ * toRemove distinguishes between whether the pattern is in a stmt predicate and thus doesn't need accumulating as
+ * something to replace, or whether its a normal pattern and does
  */
-class ASTPatternMatcher {
+class ASTPatternMatcher(toRemove:Boolean) {
 
   val log = LoggerFactory getLogger(this getClass)
 
@@ -244,7 +246,8 @@ class ASTPatternMatcher {
       case _ => c(false)
     }
     con.values += "_from" -> node
-    con.replaceNodes += node
+    if (toRemove)
+        con.replaceNodes += node
     log.debug ("con.status = {}",con.status)
     con
   }
