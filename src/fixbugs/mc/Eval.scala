@@ -74,14 +74,15 @@ class Eval(typeEnv:TypeEnvironment,iNodes:Set[Int],dom:ClosedDomain[Any],succ:MM
             log debug ("satisifes, name = {}, res no check = {}",name,strRes(res))
             res.equalByKey(name,"_current")
         }
-        // TODO: nc should be domain with current
         case TypePred(name,pattern) => {
             log debug ("encountered TypePred for variable: "+name)
-            domain.all().filter(x => {
+            val typeRes = domain.all().filter(x => {
                 val res = types.typePred(name,pattern,x)
                 log debug ("result of {} is {}",x,res)
                 res
             })
+            log debug("typeRes = {}",strRes(typeRes))
+            typeRes
         }
         case MethodPred(nameStr) => pred(mc.name.equals(nameStr))
     }
@@ -121,7 +122,7 @@ class Eval(typeEnv:TypeEnvironment,iNodes:Set[Int],dom:ClosedDomain[Any],succ:MM
               // initial: phis that are exit points 
               loop(phis.restrictKeyTo("_current",exit),phis)
             }
-            //case x => throw new Exception("Unknown temporal IR element: "+x)            
+            case x => throw new Exception("Unknown temporal IR element: "+x)
         }
         tabIndent -= 1
         matchRes

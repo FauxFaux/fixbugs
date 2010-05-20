@@ -2,7 +2,7 @@ package fixbugs.test;
 
 public class Simple {
 	
-	//private static final long TestField = 0;
+	private static final long x = 0;
 
 	public static void main(String[] args) {
         if(true) {
@@ -12,7 +12,7 @@ public class Simple {
         }
         int x = 2;
 		int y = x + 3;
-        int z = 4;
+        long z = 4;
 		for(int i = 0;i<10;i++) {
 			System.out.println(i);
 		}

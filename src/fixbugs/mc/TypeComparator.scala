@@ -50,7 +50,10 @@ class TypeComparator(typeEnv:TypeEnvironment) {
             val varName = mapVal.asInstanceOf[Name].getFullyQualifiedName
             makeType(pattern,env) match {
                 case Some(madeType) => {
-                    if (typeEnv.vars.contains(varName)) typeEnv.vars(varName).equals(madeType)
+                    if (typeEnv.vars.contains(varName)) {
+                        log debug ("local variable: {}",varName)
+                        typeEnv.vars(varName).equals(madeType)
+                    }
                     else typeEnv.fields.contains(varName) && typeEnv.fields(varName).equals(madeType)
                 }
                 case None => {
@@ -59,7 +62,7 @@ class TypeComparator(typeEnv:TypeEnvironment) {
                 }
             }
         } else {
-            log debug ("\tincorrect metavar type for {}",metavar)
+            log debug ("\tincorrect metavar type for {} - {}",metavar,mapVal.asInstanceOf[Object].getClass.getName)
             false
         }
     }

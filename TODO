@@ -1,9 +1,7 @@
 
 Reliability
     Deal with multiple bytecode files
-    Test with multiple methods
     context sensitive wildcards
-    Test the field enabling/disabling scenario
 
 Future:
     Alias Analysis?
@@ -21,6 +19,7 @@ Future:
         - eval
     macros and/or functions?
     mavenise dependancies
+    abstract and tidy the sets/setclosed etc.
 
 Specifications:
     - lock/unlock

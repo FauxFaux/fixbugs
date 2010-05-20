@@ -136,10 +136,10 @@ object Main {
                 // Change to line numbers if its a statement, otherwise don't
                 // Old: v.isInstanceOf[ASTNode] && ! v.isInstanceOf[PrimitiveType]
                 if(v.isInstanceOf[Statement]) {
-                    valuation += (k -> cu.getLineNumber(v.getStartPosition))
+                    valuation += (k -> cu.getLineNumber(v.asInstanceOf[Statement].getStartPosition))
                 } else {
                     valuation += (k -> v)
-                    log debug("Non-Statement: {}", v.getClass.getName)
+                    log debug("Non-Statement: {}", v.asInstanceOf[Object].getClass.getName)
                 }
             }
             allValues += ((valuation,con))
@@ -172,10 +172,10 @@ object Main {
      */
     def rewrite(ast:AST,to:Stmt,context:Context,srcContents:String,wildcards:List[List[Statement]]):String = {
       log debug("nodes = {}",context.replaceNodes)
-      val from  = context("_from")
+      val from  = context("_from").asInstanceOf[ASTNode]
       val rewriter = ASTRewrite.create(ast)
       log debug("wildcards = {}",wildcards)
-      val gen = new ASTPatternGenerator(ast,rewriter,Map() ++context.values,true,wildcards)
+      val gen = new ASTPatternGenerator(ast,rewriter,Map() ++context.values.asInstanceOf[MMap[String,ASTNode]],true,wildcards)
       val doc = new Document(srcContents)
       rewriter.replace(from,gen.generateStatements(to),null)
 

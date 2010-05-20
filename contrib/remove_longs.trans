@@ -1,0 +1,6 @@
+REPLACE
+    ::t x = l;
+WITH
+    ;
+WHERE
+    type x is long

@@ -26,6 +26,8 @@ import org.objectweb.asm.ClassReader
 import org.objectweb.asm.tree.ClassNode
 import org.objectweb.asm.tree.MethodNode
 import org.objectweb.asm.tree.AbstractInsnNode
+import org.objectweb.asm.Type
+
 import scala.collection.mutable.{HashMap => MMap,Map}
 import scala.collection.immutable.{Map => IMap}
 import java.io.FileInputStream
@@ -43,6 +45,8 @@ object ModelCheck {
   def conMap[X,Y](jm:java.util.Map[X,Y]):IMap[X,Y] = IMap() ++ new MapWrapper[X,Y]() {
     def underlying = jm
   }
+
+  def fromInternal(s:String) = s.replace("/",".")
 
   def check(className:String,phi:SideCondition,domain:ClosedDomain[Any]):Map[String,ClosedEnvironment[Any]] = {
     // refine IR
@@ -67,12 +71,18 @@ object ModelCheck {
         val varTypes = conMap(TypeExtractor.lookupVarTypes(mn))
 	    val nodes = Set() ++ lines
 
-        val completeDomain = domain
+        // remove values not for current method
+        val localName = fromInternal(cn.name)+"#"+mn.name
+        val localDomain = new SetClosedDomain[Any](domain.allValues.filter({ m =>
+            val name = m("_method").asInstanceOf[String]
+            log debug ("_method = {}, localName = {}",name,localName)
+            name.equals(localName)
+        }))
         
         val typeEnv = new TypeEnvironment(fieldTypes,varTypes)
 	    
 	    // model check the method, and add the results
-	    val eval:Evaluator = new Eval(typeEnv,nodes,completeDomain,succs,preds) //minimise(lines,succs),minimise(lines,preds)
+	    val eval:Evaluator = new Eval(typeEnv,nodes,localDomain,succs,preds) //minimise(lines,succs),minimise(lines,preds)
         log debug ("calling eval for method: {} with types {}",mn.name,typeEnv)
 	    results += (mn.name -> eval.eval(mn,psi))
     }

@@ -49,9 +49,9 @@ class ASTPatternMatcher(toRemove:Boolean) {
   def next = {i+=1;i}
   // context creation
   def c(v:Boolean):Context = c(v,new HashMap())
-  def c(v:Boolean,vals:MMap[String,ASTNode]):Context = new Context(v,vals,MSet())
+  def c(v:Boolean,vals:MMap[String,Any]):Context = new Context(v,vals,MSet())
   // singleton context
-  def one(k:String,v:ASTNode):Context = c(true,HashMap(k->v))
+  def one(k:String,v:Any):Context = c(true,HashMap(k->v))
   def guard(g:Boolean,context:()=>Context) = {
     if(g)
       context()
@@ -76,15 +76,18 @@ class ASTPatternMatcher(toRemove:Boolean) {
    */
   def unifyAll(cu:CompilationUnit,pattern:Stmt):Iterator[Context] = {
     wildcards = Nil
-    val acc = cu.types.iterator.flatMap(
-      _.asInstanceOf[TypeDeclaration].getMethods.flatMap({m =>
+    val pkg = cu.getPackage.getName.toString
+    val acc = cu.types.iterator.flatMap({x =>
+      val typeDecl = x.asInstanceOf[TypeDeclaration]
+      val typeName = typeDecl.getName.getFullyQualifiedName.toString
+      typeDecl.getMethods.flatMap({m =>
         val inner = m.getBody.statements
-        pattern match {
+        (pattern match {
             case SBlock(patterns) => List(blockIt(inner,patterns))
             case _ => inner.iterator.map(s => unifyStmt(s.asInstanceOf[IRStmt],pattern)).toList.filter(_.status)
-        }
+        }).map(one("_method",pkg+"."+typeName+"#"+(m.getName.getFullyQualifiedName.toString)) & _)
       })
-    )
+    })
     acc
   }
   
@@ -246,8 +249,10 @@ class ASTPatternMatcher(toRemove:Boolean) {
       case _ => c(false)
     }
     con.values += "_from" -> node
-    if (toRemove)
+    if (toRemove) {
+        log debug ("toRemove on, node = {}",node)
         con.replaceNodes += node
+    }
     log.debug ("con.status = {}",con.status)
     con
   }
@@ -358,7 +363,7 @@ class ASTPatternMatcher(toRemove:Boolean) {
  * Immutable Context Object
  * Note: wraps mutable map for simplicity
  */
-class Context(st:Boolean,vals:MMap[String,ASTNode],replace:MSet[ASTNode]) extends Cloneable[Context] with Function1[String, ASTNode] {
+class Context(st:Boolean,vals:MMap[String,Any],replace:MSet[ASTNode]) extends Cloneable[Context] with Function1[String, Any] {
   
   val log = LoggerFactory getLogger(this getClass)
   
