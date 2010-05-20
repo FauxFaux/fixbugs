@@ -1,13 +1,4 @@
 
-Immediate:
-    Fix Silhouetting
-     - Totally compress the nodes
-        - identify lines to compress
-        - check minimisation
-
-Next:
-    Finish README
-
 Reliability
     Deal with multiple bytecode files
     Test with multiple methods

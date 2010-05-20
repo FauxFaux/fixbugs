@@ -11,6 +11,20 @@ Additionally you will need an eclipse JEE install.
 
 2. Compiling
 
+a. Create an ant.props file,  with the following:
+    i. scala.home - the directory that scala is installed into
+    ii. ECLIPSE_HOME - the directory that eclipse plugin jars are installed into
+    iii. log4j.loc - the location of a log4j.properties file, a debugging one is shipped with the code at: etc/log4j.properties
+
+b. ant build compiles the code.
+
 3. Running
 
+Fixbugs can be run using the following command:
+    ant run -Da="SomeFile.java" -Dc="SomeSpecification.trans"
+
+4. Documentation
+
+The latex source code to the tutorial is available at tutorial/tutorial.tex.
+The tutorial itself can be found online at https://launchpad.net/fixbugs.
 
