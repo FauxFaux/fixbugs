@@ -20,9 +20,9 @@ do_test () {
 #do_test "progs/fixbugs/test/Simple.java" "contrib/not.trans"
 #do_test "progs/fixbugs/test/Simple.java" "contrib/temp_and.trans"
 #do_test "progs/fixbugs/test/Simple.java" "contrib/temp_or.trans"
-#do_test "progs/fixbugs/test/Simple.java" "contrib/temp_next.trans"
+do_test "progs/fixbugs/test/Simple.java" "contrib/temp_next.trans"
 #do_test "progs/fixbugs/test/Simple.java" "contrib/temp_until.trans"
-do_test "progs/fixbugs/test/Simple.java" "contrib/temp_future.trans"
+#do_test "progs/fixbugs/test/Simple.java" "contrib/temp_future.trans"
 
 # real world examples
 

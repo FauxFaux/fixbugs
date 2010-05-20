@@ -63,6 +63,7 @@ object ModelCheck {
         // extract cfg using asm
 	    val (succs,preds) = cfg(ControlFlowGraphAnalysis.getControlFlowGraph("fixbugs",mn))
 	    val lines = LineNumberExtractor.getLineNumberLookup(mn)
+        log debug ("lines = {}",lines)
         val varTypes = conMap(TypeExtractor.lookupVarTypes(mn))
 	    val nodes = Set() ++ lines
 
@@ -71,7 +72,7 @@ object ModelCheck {
         val typeEnv = new TypeEnvironment(fieldTypes,varTypes)
 	    
 	    // model check the method, and add the results
-	    val eval:Evaluator = new Eval(typeEnv,nodes,completeDomain,minimise(lines,succs),minimise(lines,preds))
+	    val eval:Evaluator = new Eval(typeEnv,nodes,completeDomain,succs,preds) //minimise(lines,succs),minimise(lines,preds)
         log debug ("calling eval for method: {} with types {}",mn.name,typeEnv)
 	    results += (mn.name -> eval.eval(mn,psi))
     }
@@ -102,7 +103,9 @@ object ModelCheck {
           preds += (i -> convert(nodes(i).predecessors).map(nodes.indexOf(_)))
       }
     }
-    
+   
+    log debug ("succs = {}",succs)
+    log debug ("preds = {}",succs)
     (succs,preds)
   }
   
@@ -113,6 +116,7 @@ object ModelCheck {
   // TODO: remove cycles
   def minimise(lines:Array[Int],cfg:MMap[Int,Set[Int]]) = {
     cfg.transform((k,v) => v.map(x => lines(x)))
+    log debug ("transformed cfg = {}",cfg)
     val acc = new MMap[Int,Set[Int]]
     cfg.foreach(x => {
       val (from,to) = x
@@ -120,6 +124,7 @@ object ModelCheck {
       val toAcc = acc.getOrElse(srcLine,Set())
       acc += (srcLine -> (toAcc ++ to - srcLine))
     })
+    log debug ("minimised acc = {}",cfg)
     acc
   }
   

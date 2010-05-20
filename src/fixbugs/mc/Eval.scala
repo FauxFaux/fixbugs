@@ -52,6 +52,13 @@ class Eval(typeEnv:TypeEnvironment,iNodes:Set[Int],dom:ClosedDomain[Any],succ:MM
 
     // converts boolean predicate to domains
     def pred(p:Boolean) = if (p) domain.all() else domain.none()
+    
+    var tabIndent:Int = 0
+
+    def tabs() = (0 to tabIndent).foldLeft(new StringBuilder){(acc,_) => acc.append("\t")} toString
+
+    // printable string representation of a result
+    def strRes(res:ClosedEnvironment[Any]) = (Map() ++ res.allValues).foldLeft(""){(x,acc)=>acc+"\n"+tabs+x}
 
     def eval(mc:MethodNode,sc:SideCondition):ClosedEnvironment[Any] = sc match {
         case SFalse() => domain.none()
@@ -64,7 +71,7 @@ class Eval(typeEnv:TypeEnvironment,iNodes:Set[Int],dom:ClosedDomain[Any],succ:MM
             domain = new SetClosedDomain[Any](crossWith(domain.allValues,"_current",nodes))
             val res = eval(phi)
             domain = oldDomain
-            log debug ("satisifes, name = {}, res = {}",name,(Map() ++ res.allValues).foldLeft(""){(x,acc)=>acc+"\n"+x})
+            log debug ("satisifes, name = {}, res no check = {}",name,strRes(res))
             res.equalByKey(name,"_current")
         }
         // TODO: nc should be domain with current
@@ -79,13 +86,17 @@ class Eval(typeEnv:TypeEnvironment,iNodes:Set[Int],dom:ClosedDomain[Any],succ:MM
         case MethodPred(nameStr) => pred(mc.name.equals(nameStr))
     }
 
+
     def eval(nc:NodeCondition):ClosedEnvironment[Any] = {
-		nc match {
+        tabIndent += 1
+		val matchRes = nc match {
             case False() => domain.none()
             case True() => domain.all()
             case NodePred(key) => {
-                log debug("domain = ",domain.all())
-                domain.all().equalByKey(key,"_current")
+                //log debug("domain = ",domain.all())
+                val res = domain.all().equalByKey(key,"_current")
+                log debug (tabs + "NodePred, key = {}, res = {}",key,strRes(res))
+                res
             }
             case Not(phi) => eval(phi).negate()
             case Or(l,r) => eval(l) union eval(r)
@@ -94,7 +105,13 @@ class Eval(typeEnv:TypeEnvironment,iNodes:Set[Int],dom:ClosedDomain[Any],succ:MM
             // Temporal cases only EX,EG,EU due to refinement
             
             // move current to predecessor
-            case Exists(Next(phi)) => eval(phi).mapKey("_current",imPred)
+            case Exists(Next(phi)) => {
+                val phiRes = eval(phi)
+                log debug (tabs + "EX - phi {},phiRes = {}, imPred = "+imPred,phi,strRes(phiRes))
+                val res = phiRes.mapKey("_current",imPred)
+                log debug (tabs + "EX - res = {}",strRes(res))
+                res
+            }
             
             case Exists(Until(phi,psi)) => loop(eval(psi),eval(phi))
             
@@ -104,9 +121,10 @@ class Eval(typeEnv:TypeEnvironment,iNodes:Set[Int],dom:ClosedDomain[Any],succ:MM
               // initial: phis that are exit points 
               loop(phis.restrictKeyTo("_current",exit),phis)
             }
-            
-            case x => throw new Exception("Unknown temporal IR element: "+x)            
+            //case x => throw new Exception("Unknown temporal IR element: "+x)            
         }
+        tabIndent -= 1
+        matchRes
     }
     
     /**
