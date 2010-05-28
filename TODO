@@ -1,7 +1,6 @@
 
 Reliability
     Deal with multiple bytecode files
-    context sensitive wildcards
 
 Future:
     Alias Analysis?
