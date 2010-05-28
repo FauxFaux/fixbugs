@@ -49,6 +49,7 @@ case class True() extends NodeCondition
 case class False() extends NodeCondition
 case class StmtPred(stmt:Statement) extends NodeCondition
 
+/*
 object NodeCondition {
   //  IR Generator crap
   // TODO: refactor common code
@@ -83,3 +84,4 @@ object NodeCondition {
   
   implicit val arbFoo: Arbitrary[NodeCondition] = Arbitrary { Gen.sized(sz => genTree(sz)) }
 }
+*/

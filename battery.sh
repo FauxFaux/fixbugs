@@ -9,7 +9,7 @@ do_test () {
 # Simple Remove Tests
 
 #do_test "progs/fixbugs/test/Simple.java" "contrib/remove_for.trans"
-#do_test "progs/fixbugs/test/Simple.java" "contrib/remove_rhs_or_for.trans"
+do_test "progs/fixbugs/test/Simple.java" "contrib/remove_rhs_or_for.trans"
 #do_test "progs/fixbugs/test/Simple.java" "contrib/remove_rhs_then_for.trans"
 #do_test "progs/fixbugs/test/Simple.java" "contrib/remove_if.trans"
 
@@ -20,7 +20,7 @@ do_test () {
 #do_test "progs/fixbugs/test/Simple.java" "contrib/not.trans"
 #do_test "progs/fixbugs/test/Simple.java" "contrib/temp_and.trans"
 #do_test "progs/fixbugs/test/Simple.java" "contrib/temp_or.trans"
-do_test "progs/fixbugs/test/Simple.java" "contrib/temp_next.trans"
+#do_test "progs/fixbugs/test/Simple.java" "contrib/temp_next.trans"
 #do_test "progs/fixbugs/test/Simple.java" "contrib/temp_until.trans"
 #do_test "progs/fixbugs/test/Simple.java" "contrib/temp_future.trans"
 

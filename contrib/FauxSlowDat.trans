@@ -1,0 +1,6 @@
+REPLACE
+	n: ::t a = x;
+WITH
+	::t a;
+WHERE
+	{ A[ ¬ use(a) U (stmt(a = y;)) ] } @ n and conlit(x)
