@@ -1,6 +1,4 @@
-<project 
-	xmlns="http://maven.apache.org/POM/4.0.0"
-	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>fixbugs</groupId>
@@ -8,13 +6,13 @@
 	<packaging>jar</packaging>
 	<version>0.1-SNAPSHOT</version>
 	<name>Fixbugs Main Package</name>
-  <repositories>
-     <repository>
-       <id>scala-tools.org</id>
-       <name>Scala-Tools Maven2 Repository</name>
-       <url>http://scala-tools.org/repo-releases</url>
-     </repository>
-  </repositories>
+	<repositories>
+		<repository>
+			<id>scala-tools.org</id>
+			<name>Scala-Tools Maven2 Repository</name>
+			<url>http://scala-tools.org/repo-releases</url>
+		</repository>
+	</repositories>
 
 	<dependencies>
 		<dependency>
@@ -27,66 +25,64 @@
 			<artifactId>asm-all</artifactId>
 			<version>3.2</version>
 		</dependency>
-	      <dependency>
-        	<groupId>log4j</groupId>
-        	<artifactId>log4j</artifactId>
-        	<version>1.2.16</version>
-	      </dependency>
-<dependency>
-    <groupId>org.slf4j</groupId>
-    <artifactId>slf4j-api</artifactId>
-    <version>1.5.11</version>
-</dependency>
-<dependency>
-	<groupId>org.slf4j</groupId>
-	<artifactId>slf4j-log4j12</artifactId>
-	<version>1.5.11</version>
-</dependency>
-<dependency>
-	<groupId>org.eclipse.jface</groupId>
-	<artifactId>text</artifactId>
-	<version>[3.5.0-v00000000,4.0.0)</version>
-</dependency>
-  <dependency>
-    <groupId>org.scala-tools.testing</groupId>
-    <artifactId>scalacheck_2.7.7</artifactId>
-    <version>1.6</version>
-  </dependency>
-
-
+		<dependency>
+			<groupId>log4j</groupId>
+			<artifactId>log4j</artifactId>
+			<version>1.2.16</version>
+		</dependency>
+		<dependency>
+			<groupId>org.slf4j</groupId>
+			<artifactId>slf4j-api</artifactId>
+			<version>1.5.11</version>
+		</dependency>
+		<dependency>
+			<groupId>org.slf4j</groupId>
+			<artifactId>slf4j-log4j12</artifactId>
+			<version>1.5.11</version>
+		</dependency>
+		<dependency>
+			<groupId>org.eclipse.jface</groupId>
+			<artifactId>text</artifactId>
+			<version>[3.5.0-v00000000,4.0.0)</version>
+		</dependency>
+		<dependency>
+			<groupId>org.scala-tools.testing</groupId>
+			<artifactId>scalacheck_2.7.7</artifactId>
+			<version>1.6</version>
+		</dependency>
 	</dependencies>
 	<build>
-	<plugins>
-	<plugin>
-<groupId>org.scala-tools</groupId>
-<artifactId>maven-scala-plugin</artifactId>
-<executions>
-<execution>
-<goals>
-<goal>compile</goal>
-<goal>testCompile</goal>
-</goals>
-</execution>
-</executions>
-<configuration>
-<scalaVersion>2.7.7</scalaVersion>
-<args>
-<arg>-target:jvm-1.5</arg>
-</args>
-<jvmArgs>
-<jvmArg>-Xmx512m</jvmArg>
-<jvmArg>-Xms64m</jvmArg>
-</jvmArgs>
-</configuration>
-</plugin>
-                <plugin>
-                    <groupId>org.apache.maven.plugins</groupId>
-                    <artifactId>maven-compiler-plugin</artifactId>
-                    <configuration>
-                        <source>1.6</source>
-                        <target>1.6</target>
-                    </configuration>
-                </plugin>
-	</plugins>
+		<plugins>
+			<plugin>
+				<groupId>org.scala-tools</groupId>
+				<artifactId>maven-scala-plugin</artifactId>
+				<executions>
+					<execution>
+						<goals>
+							<goal>compile</goal>
+							<goal>testCompile</goal>
+						</goals>
+					</execution>
+				</executions>
+				<configuration>
+					<scalaVersion>2.7.7</scalaVersion>
+					<args>
+						<arg>-target:jvm-1.5</arg>
+					</args>
+					<jvmArgs>
+						<jvmArg>-Xmx512m</jvmArg>
+						<jvmArg>-Xms64m</jvmArg>
+					</jvmArgs>
+				</configuration>
+			</plugin>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-compiler-plugin</artifactId>
+				<configuration>
+					<source>1.6</source>
+					<target>1.6</target>
+				</configuration>
+			</plugin>
+		</plugins>
 	</build>
 </project>
