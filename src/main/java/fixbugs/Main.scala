@@ -46,7 +46,7 @@ object Main {
 
     def lastBut(str:Array[String],n:Int) = str(str.length-n)
     
-    def main(args:Array[String]) = {
+    def main(args:Array[String]) : Unit = {
 
         // Setup log4j backend for slf4j
         BasicConfigurator.configure();
